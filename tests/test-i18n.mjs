@@ -65,7 +65,7 @@ assert.doesNotMatch(sources, /(?:title|subtitle|label|text|accessible_name|hint_
 
 const spec = readFileSync('packaging/sheliak.spec', 'utf8');
 assert.match(spec, /dist\/locale/);
-assert.match(spec, /extensions\/sheliak@lyraos\.org\/locale/);
+assert.match(spec, /extensions\/sheliak@lyraos\.com\.br\/locale/);
 const makefile = readFileSync('Makefile', 'utf8');
 assert.match(makefile, /dist\/locale/);
 
