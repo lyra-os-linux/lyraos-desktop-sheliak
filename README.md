@@ -52,7 +52,7 @@ sudo zypper install sheliak
 Depois da instalação, encerre e inicie a sessão GNOME e habilite a extensão:
 
 ```sh
-gnome-extensions enable sheliak@lyraos.org
+gnome-extensions enable sheliak@lyraos.com.br
 ```
 
 ## Build
@@ -72,9 +72,9 @@ npm run pack
 ## Instalação local
 
 ```sh
-mkdir -p ~/.local/share/gnome-shell/extensions/sheliak@lyraos.org
-cp -a dist/. ~/.local/share/gnome-shell/extensions/sheliak@lyraos.org/
-gnome-extensions enable sheliak@lyraos.org
+mkdir -p ~/.local/share/gnome-shell/extensions/sheliak@lyraos.com.br
+cp -a dist/. ~/.local/share/gnome-shell/extensions/sheliak@lyraos.com.br/
+gnome-extensions enable sheliak@lyraos.com.br
 ```
 
 Em Wayland, encerre e inicie a sessão depois da primeira instalação.
@@ -83,7 +83,7 @@ Em Wayland, encerre e inicie a sessão depois da primeira instalação.
 
 O pacote do sistema deve instalar o conteúdo de `dist/` em:
 
-`/usr/share/gnome-shell/extensions/sheliak@lyraos.org/`
+`/usr/share/gnome-shell/extensions/sheliak@lyraos.com.br/`
 
 O spec de referência está em `packaging/sheliak.spec`. O destino oficial é:
 
@@ -92,7 +92,7 @@ O spec de referência está em `packaging/sheliak.spec`. O destino oficial é:
 - Repositório Git: `https://github.com/britors/Sheliak`
 
 A imagem/meta-pacote do Lyra OS deve instalar `sheliak`, habilitar
-`sheliak@lyraos.org` por padrão e remover a dependência de Dash to Dock. O
+`sheliak@lyraos.com.br` por padrão e remover a dependência de Dash to Dock. O
 meta-pacote e o `Lyra-Themes` não fazem parte deste repositório; essa troca deve
 ser aplicada no repositório que atualmente declara a dependência.
 

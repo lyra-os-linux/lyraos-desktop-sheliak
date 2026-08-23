@@ -1,4 +1,4 @@
-UUID := sheliak@lyraos.org
+UUID := sheliak@lyraos.com.br
 PREFIX ?= /usr
 EXTENSIONDIR := $(DESTDIR)$(PREFIX)/share/gnome-shell/extensions/$(UUID)
 

@@ -10,7 +10,7 @@
     "build": "node scripts/build.mjs",
     "check": "tsc --noEmit",
     "test": "npm run build && node tests/test-i18n.mjs",
-    "pack": "npm run build && cd dist && zip -qr ../sheliak@lyraos.org.zip ."
+    "pack": "npm run build && cd dist && zip -qr ../sheliak@lyraos.com.br.zip ."
   },
   "devDependencies": {
     "@girs/gnome-shell": "^48.0.0",
