@@ -89,7 +89,7 @@ O spec de referência está em `packaging/sheliak.spec`. O destino oficial é:
 
 - Projeto OBS: `home:rodrigosbrito:lyra`
 - Pacote: `sheliak`
-- Repositório Git: `https://github.com/britors/Sheliak`
+- Repositório Git: `https://github.com/lyra-os-linux/lyraos-desktop-sheliak`
 
 A imagem/meta-pacote do Lyra OS deve instalar `sheliak`, habilitar
 `sheliak@lyraos.com.br` por padrão e remover a dependência de Dash to Dock. O

@@ -40,8 +40,8 @@ type SearchItem = {
     activate: () => void;
 };
 
-const LYRA_SOURCE_URL = 'https://github.com/britors/lyra';
-const LYRA_ISSUES_URL = 'https://github.com/britors/Lyra/issues';
+const LYRA_SOURCE_URL = 'https://github.com/lyra-os-linux/lyraos-desktop';
+const LYRA_ISSUES_URL = 'https://github.com/lyra-os-linux/lyraos-desktop/issues';
 
 function applicationCategories() {
     return [
