@@ -206,11 +206,12 @@
 }
 
 /* Enquanto uma janela estiver maximizada (ver topBar.ts _hasMaximizedWindow),
- * a barra cola nas bordas e fica plana: sem cantos arredondados nem sombra,
- * para casar com a janela colada nela. As margens já são zeradas via Clutter,
- * não CSS. */
+ * a barra cola nas bordas e fica plana: sem borda, cantos arredondados ou
+ * sombra, para casar com a janela colada nela. As margens já são zeradas via
+ * Clutter, não CSS. */
 #panel.sheliak-panel-floating.sheliak-panel-flush,
 #panel.sheliak-panel-floating.sheliak-panel-flush:overview {
+  border: none;
   border-radius: 0;
   box-shadow: none;
 }
@@ -332,14 +333,14 @@
  */
 .sheliak-shell-theme .sheliak-panel-menu.popup-menu-boxpointer {
   -arrow-background-color: rgba(34, 40, 49, 0.98);
-  -arrow-border-color: rgba(205, 214, 224, 0.20);
+  -arrow-border-color: transparent;
 }
 
 .sheliak-shell-theme .sheliak-panel-menu .popup-menu-content {
   background-color: rgba(34, 40, 49, 0.98);
   color: #e8ecf3;
-  border: 1px solid rgba(205, 214, 224, 0.18);
-  border-radius: 16px;
+  border: none;
+  border-radius: 0;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
 }
 
@@ -471,14 +472,15 @@
 .sheliak-shell-theme.sheliak-shell-light-theme
 .sheliak-panel-menu.popup-menu-boxpointer {
   -arrow-background-color: rgba(246, 247, 249, 0.99);
-  -arrow-border-color: rgba(20, 20, 43, 0.14);
+  -arrow-border-color: transparent;
 }
 
 .sheliak-shell-theme.sheliak-shell-light-theme
 .sheliak-panel-menu .popup-menu-content {
   background-color: rgba(246, 247, 249, 0.99);
   color: #14142b;
-  border-color: rgba(20, 20, 43, 0.14);
+  border: none;
+  border-radius: 0;
   box-shadow: 0 8px 24px rgba(20, 20, 43, 0.18);
 }
 

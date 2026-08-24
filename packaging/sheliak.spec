@@ -1,9 +1,9 @@
 Name:           sheliak
-Version:        1.12.0
+Version:        1.12.2
 Release:        0
 Summary:        Native Lyra OS dock for GNOME Shell
 License:        GPL-3.0-or-later
-URL:            https://github.com/lyra-os/Sheliak
+URL:            https://github.com/lyra-os-linux/lyraos-desktop-sheliak
 Source0:        %{name}-%{version}.tar.zst
 BuildArch:      noarch
 BuildRequires:  zstd
