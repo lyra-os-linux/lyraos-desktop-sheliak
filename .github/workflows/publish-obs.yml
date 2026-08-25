@@ -1,11 +1,8 @@
 name: Publish to OBS
 
-# Só avisa o OBS pra tentar rebuildar quando uma tag é criada — não é publicação de
-# verdade. Mesmo padrão usado no Beam, no Draco e no Vega (ver .github/workflows/*.yml
-# desses repos): o serviço server-side do OBS (tar_scm/obs_scm) roda num sandbox sem
-# acesso à rede na instância pública api.opensuse.org, então esse trigger tende a
-# falhar — por isso continue-on-error e o pulo silencioso se o secret não estiver
-# configurado.
+# A validação obrigatória de PR vive em contracts.yml. Este workflow apenas
+# solicita ao OBS a atualização da fonte em tags; se credencial ou chamada
+# falhar, a release deve ficar vermelha e exigir intervenção explícita.
 #
 # O fluxo real de publicação no pacote home:rodrigosbrito:lyra/sheliak é manual:
 # gerar dist/ (`npm run build`) + tarball localmente e subir via `osc` a cada
@@ -21,15 +18,18 @@ jobs:
   trigger-obs:
     runs-on: ubuntu-latest
     steps:
-      - name: Disparar rebuild no OBS (best-effort)
-        continue-on-error: true
+      - name: Exigir credencial de publicação
         env:
           OBS_TOKEN: ${{ secrets.OBS_TOKEN_LYRA_SHELIAK }}
         run: |
           if [ -z "$OBS_TOKEN" ]; then
-            echo "OBS_TOKEN_LYRA_SHELIAK não configurado, pulando." >&2
-            exit 0
+            echo "OBS_TOKEN_LYRA_SHELIAK não configurado; publicação bloqueada." >&2
+            exit 1
           fi
+      - name: Disparar serviço OBS obrigatório
+        env:
+          OBS_TOKEN: ${{ secrets.OBS_TOKEN_LYRA_SHELIAK }}
+        run: |
           curl --fail-with-body --silent --show-error \
             -H "Authorization: Token $OBS_TOKEN" \
             -X POST "https://api.opensuse.org/trigger/runservice?project=home:rodrigosbrito:lyra&package=sheliak"

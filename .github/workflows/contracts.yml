@@ -1,0 +1,32 @@
+name: Contracts
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y gettext libglib2.0-bin rpm
+      - run: npm ci
+      - name: Validate TypeScript, bundle, translations and packaging
+        run: |
+          npm run check
+          npm test
+          rpmspec -P packaging/sheliak.spec >/dev/null
+      - name: Verify build reproducibility
+        run: |
+          cp -a dist /tmp/sheliak-dist-first
+          npm run build
+          diff -ru /tmp/sheliak-dist-first dist
