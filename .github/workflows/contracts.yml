@@ -24,6 +24,8 @@ jobs:
           for locale in en_US pt_BR es_ES fr_FR; do
             sudo localedef -i "$locale" -f UTF-8 "$locale.UTF-8"
           done
+          # Exercise gettext's modifier fallback with a valid libc locale.
+          sudo localedef -i pt_BR -f UTF-8 'pt_BR.UTF-8@custom'
       - run: npm ci
       - name: Validate TypeScript, bundle, translations and packaging
         run: |
