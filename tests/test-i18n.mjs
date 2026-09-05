@@ -27,6 +27,7 @@ for (const [lang, expected] of cases) {
     const env = {...process.env, LANG: lang, TEXTDOMAIN: 'sheliak',
         TEXTDOMAINDIR: resolve('dist/locale')};
     delete env.LC_ALL;
+    delete env.LC_MESSAGES;
     delete env.LANGUAGE;
     const actual = execFileSync('gettext', ['Applications'], {encoding: 'utf8', env});
     assert.equal(actual, expected, `LANG=${lang}`);
