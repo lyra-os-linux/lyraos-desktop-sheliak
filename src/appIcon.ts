@@ -44,7 +44,7 @@ export class AppIcon {
         this.favorite = favorite;
         this.appId = app.get_id();
         this.actor = new St.Button({
-            style_class: 'sheliak-app-button',
+            style_class: 'overview-tile sheliak-app-button',
             reactive: true,
             can_focus: true,
             track_hover: true,
@@ -54,7 +54,7 @@ export class AppIcon {
         const iconContainer = new St.Widget({layout_manager: new Clutter.BinLayout()});
         iconContainer.add_child(app.create_icon_texture(iconSize));
         this._badge = new St.Label({
-            style_class: 'sheliak-app-badge',
+            style_class: 'dash-label sheliak-app-badge',
             text: '',
             visible: false,
             x_align: Clutter.ActorAlign.END,
@@ -63,15 +63,13 @@ export class AppIcon {
         iconContainer.add_child(this._badge);
 
         this._runningIndicator = new St.Widget({
-            style_class: 'sheliak-running-indicator',
+            style_class: 'app-grid-running-dot sheliak-running-indicator',
             visible: false,
-            width: 7,
-            height: 7,
             x_align: Clutter.ActorAlign.CENTER,
             y_align: Clutter.ActorAlign.CENTER,
         });
         this._windowCountIndicator = new St.Label({
-            style_class: 'sheliak-window-count',
+            style_class: 'dash-label sheliak-window-count',
             text: '',
             visible: false,
             x_align: Clutter.ActorAlign.CENTER,
@@ -86,6 +84,7 @@ export class AppIcon {
         indicatorRow.add_child(this._windowCountIndicator);
 
         const content = new St.BoxLayout({
+            style_class: 'overview-icon',
             orientation: Clutter.Orientation.VERTICAL,
             x_align: Clutter.ActorAlign.CENTER,
         });

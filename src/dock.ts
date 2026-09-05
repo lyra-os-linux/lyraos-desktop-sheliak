@@ -23,6 +23,7 @@ const SETTINGS_SCHEMA = 'org.gnome.shell.extensions.sheliak';
 
 export class Dock {
     readonly actor: St.BoxLayout;
+    private _background: St.BoxLayout;
     private _appsBox: St.BoxLayout;
     private _separator: St.Widget;
     private _leadingSpacer: St.Widget;
@@ -36,8 +37,6 @@ export class Dock {
     private _showApps: ShowAppsButton;
     private _tooltip: TooltipManager;
     private _launcherEntries: LauncherEntryTracker;
-    private _interfaceSettings: Gio.Settings;
-    private _userThemeSettings: Gio.Settings | null = null;
     private _revealTrigger: St.Widget;
     private _pointerOverDock = false;
     private _pointerOverTrigger = false;
@@ -65,13 +64,21 @@ export class Dock {
             ? GLib.build_filenamev([extensionPath, 'icons', 'sheliak-logo-symbolic-dark.svg'])
             : null;
         this.actor = new St.BoxLayout({
-            name: 'sheliakDock',
+            // Match the Shell's native #dash selectors, including user themes.
+            name: 'dash',
             style_class: 'sheliak-dock',
             orientation: Clutter.Orientation.HORIZONTAL,
             reactive: true,
             can_focus: false,
             x_align: Clutter.ActorAlign.CENTER,
         });
+        this._background = new St.BoxLayout({
+            style_class: 'dash-background dash-item-container',
+            orientation: Clutter.Orientation.HORIZONTAL,
+            x_expand: true,
+            y_expand: true,
+        });
+        this.actor.add_child(this._background);
         this._appsBox = new St.BoxLayout({
             style_class: 'sheliak-apps',
             orientation: Clutter.Orientation.HORIZONTAL,
@@ -80,35 +87,26 @@ export class Dock {
 
         this._leadingSpacer = new St.Widget({visible: false});
         this._trailingSpacer = new St.Widget({visible: false});
-        this.actor.add_child(this._leadingSpacer);
-        this.actor.add_child(this._appsBox);
+        this._background.add_child(this._leadingSpacer);
+        this._background.add_child(this._appsBox);
         // Keep the system actions outside the aligned apps area. When the
         // dock is extended, this spacer absorbs the remaining room after the
         // apps, leaving Trash and Show Apps anchored at the end.
-        this.actor.add_child(this._trailingSpacer);
+        this._background.add_child(this._trailingSpacer);
 
-        this._separator = new St.Widget({style_class: 'sheliak-separator'});
-        this.actor.add_child(this._separator);
+        this._separator = new St.Widget({style_class: 'dash-separator sheliak-separator'});
+        this._background.add_child(this._separator);
 
         this._trash = new TrashIcon();
         this._showApps = new ShowAppsButton(logoPath, logoPathLight);
-        this.actor.add_child(this._trash.actor);
-        this.actor.add_child(this._showApps.actor);
+        this._background.add_child(this._trash.actor);
+        this._background.add_child(this._showApps.actor);
 
         this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
         this._tooltip = new TooltipManager(
             () => this._settings.get_string('position') as DockSide);
         this._launcherEntries = new LauncherEntryTracker(
             (desktopId, count) => this._onLauncherEntryChanged(desktopId, count));
-        this._interfaceSettings = new Gio.Settings({
-            schema_id: 'org.gnome.desktop.interface',
-        });
-        if (Gio.SettingsSchemaSource.get_default()
-            ?.lookup('org.gnome.shell.extensions.user-theme', true)) {
-            this._userThemeSettings = new Gio.Settings({
-                schema_id: 'org.gnome.shell.extensions.user-theme',
-            });
-        }
 
         this._revealTrigger = new St.Widget({
             name: 'sheliakDockTrigger',
@@ -190,18 +188,11 @@ export class Dock {
                     this._applySettings();
                 });
         }
-        this._signals.connect(this._interfaceSettings, 'changed::gtk-theme',
-            () => this._syncTheme());
-        this._signals.connect(this._interfaceSettings, 'changed::color-scheme',
-            () => this._syncTheme());
-        if (this._userThemeSettings) {
-            this._signals.connect(this._userThemeSettings, 'changed::name',
-                () => this._syncTheme());
-        }
+        this._signals.connect(St.ThemeContext.get_for_stage(global.stage), 'changed',
+            () => this._relayout());
 
         this._redisplay();
         this._applySettings();
-        this._syncTheme();
         this._syncVisibility();
         console.debug('Sheliak: dock construído e sinais conectados');
     }
@@ -538,16 +529,19 @@ export class Dock {
             const [, height] = child.get_preferred_height(-1);
             return [width, height];
         });
-        const spacing = this.actor.get_theme_node().get_length('spacing') ?? 0;
+        const spacing = this._background.get_theme_node().get_length('spacing') ?? 0;
         const horizontalSize = horizontal
             ? sizes.reduce((total, [width]) => total + width, 0) + Math.max(0, sizes.length - 1) * spacing
             : Math.max(0, ...sizes.map(([width]) => width));
         const verticalSize = horizontal
             ? Math.max(0, ...sizes.map(([, height]) => height))
             : sizes.reduce((total, [, height]) => total + height, 0) + Math.max(0, sizes.length - 1) * spacing;
-        const themeNode = this.actor.get_theme_node();
-        return [horizontalSize + themeNode.get_horizontal_padding(),
-            verticalSize + themeNode.get_vertical_padding()];
+        const background = this._background.get_theme_node();
+        const outer = this.actor.get_theme_node();
+        const [, contentWidth] = background.adjust_preferred_width(horizontalSize, horizontalSize);
+        const [, contentHeight] = background.adjust_preferred_height(verticalSize, verticalSize);
+        return [outer.adjust_preferred_width(contentWidth, contentWidth)[1],
+            outer.adjust_preferred_height(contentHeight, contentHeight)[1]];
     }
 
     private _setHidden(hidden: boolean): void {
@@ -571,6 +565,7 @@ export class Dock {
             ? Clutter.Orientation.HORIZONTAL
             : Clutter.Orientation.VERTICAL;
         this.actor.orientation = orientation;
+        this._background.orientation = orientation;
         this._appsBox.orientation = orientation;
         if (!horizontal) {
             this.actor.add_style_class_name('vertical');
@@ -662,22 +657,4 @@ export class Dock {
         this._chromeAdded = true;
     }
 
-    private _syncTheme(): void {
-        const gtkTheme = this._interfaceSettings.get_string('gtk-theme');
-        const shellTheme = this._userThemeSettings?.get_string('name') ?? '';
-        const isLyra = /lyra/i.test(`${gtkTheme} ${shellTheme}`);
-        const colorScheme = this._interfaceSettings.get_string('color-scheme');
-        const isLight = colorScheme !== 'prefer-dark';
-        console.debug(`Sheliak: sincronização de tema (gtk=${gtkTheme}, shell=${shellTheme}, ` +
-            `lyra=${isLyra}, color-scheme=${colorScheme}, light=${isLight})`);
-        if (isLyra)
-            this.actor.add_style_class_name('lyra-theme');
-        else
-            this.actor.remove_style_class_name('lyra-theme');
-        if (isLight)
-            this.actor.add_style_class_name('light-theme');
-        else
-            this.actor.remove_style_class_name('light-theme');
-        this._showApps.setLightTheme(isLight);
-    }
 }

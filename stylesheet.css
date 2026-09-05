@@ -1,136 +1,56 @@
-/*
- * The neutral rules inherit the active Shell theme. Lyra tokens are scoped to
- * .lyra-theme so installing Sheliak never imposes the Lyra palette on others.
- * .light-theme tracks org.gnome.desktop.interface color-scheme independently
- * of .lyra-theme, so the dock follows the system light/dark preference.
+/* Native GNOME Shell classes provide surfaces, colors and interaction states.
+ * Sheliak only adjusts the layout for a dock outside the overview and the
+ * optional panel menus. The same selectors also work with user Shell themes.
  */
-.sheliak-dock,
-.sheliak-panel-menu,
-.sheliak-search-entry,
-.sheliak-tooltip {
-  font-family: "Noto Sans CJK SC", "Noto Sans", sans-serif;
+#dash.sheliak-dock {
+  padding: 0;
 }
 
-.sheliak-dock {
+#dash.sheliak-dock .dash-background {
+  margin: 0;
   spacing: 6px;
-  padding: 6px 10px;
-  border-radius: 16px;
-  background-color: rgba(32, 36, 43, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.30);
 }
 
-.sheliak-dock.squared {
+#dash.sheliak-dock.squared .dash-background {
   border-radius: 0;
-}
-
-.sheliak-dock.lyra-theme {
-  /* lyra-slate-alt, with transparency */
-  background-color: rgba(34, 40, 49, 0.78);
-  /* lyra-mist */
-  border-color: rgba(205, 214, 224, 0.18);
-}
-
-.sheliak-dock.light-theme {
-  background-color: rgba(246, 247, 249, 0.82);
-  border-color: rgba(0, 0, 0, 0.10);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
 }
 
 .sheliak-apps {
   spacing: 4px;
 }
 
-.sheliak-app-button,
-.sheliak-system-button {
-  padding: 6px;
-  border-radius: 12px;
-  transition-duration: 120ms;
-}
-
-.sheliak-app-button:hover,
-.sheliak-app-button:focus,
-.sheliak-system-button:hover,
-.sheliak-system-button:focus {
-  background-color: rgba(255, 255, 255, 0.17);
-}
-
-.sheliak-dock.light-theme .sheliak-app-button:hover,
-.sheliak-dock.light-theme .sheliak-app-button:focus,
-.sheliak-dock.light-theme .sheliak-system-button:hover,
-.sheliak-dock.light-theme .sheliak-system-button:focus {
-  background-color: rgba(34, 34, 38, 0.17);
-}
-
-.sheliak-app-button:active,
-.sheliak-system-button:active {
-  background-color: rgba(255, 255, 255, 0.28);
-}
-
-.sheliak-dock.light-theme .sheliak-app-button:active,
-.sheliak-dock.light-theme .sheliak-system-button:active {
-  background-color: rgba(34, 34, 38, 0.28);
+#dash.sheliak-dock .sheliak-app-button,
+#dash.sheliak-dock .sheliak-system-button {
+  margin: 0;
+  padding: 0;
 }
 
 .sheliak-indicator-row {
   margin-top: 3px;
 }
 
-.sheliak-running-indicator {
-  width: 7px;
-  height: 7px;
-  border-radius: 4px;
-  background-color: #e1e6ec;
+#dash.sheliak-dock .app-grid-running-dot {
+  offset-y: 0;
 }
 
-.sheliak-window-count {
-  width: auto;
-  height: 15px;
-  min-width: 15px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background-color: #e1e6ec;
-  font-size: 10px;
-  font-weight: bold;
-  color: #20242b;
-  text-align: center;
-}
-
-.sheliak-dock.lyra-theme .sheliak-running-indicator,
-.sheliak-dock.lyra-theme .sheliak-window-count {
-  background-color: #6ea8ff;
-  color: #16223a;
-}
-
-.sheliak-dock.light-theme .sheliak-running-indicator,
-.sheliak-dock.light-theme .sheliak-window-count {
-  background-color: #2563eb;
-  color: white;
-}
-
+.sheliak-window-count,
 .sheliak-app-badge {
-  background-color: rgba(37, 99, 235, 0.92);
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
   min-width: 14px;
   padding: 1px 5px;
   border-radius: 8px;
-  text-align: center;
+  font-size: 10px;
+  font-weight: bold;
 }
 
-.sheliak-dock.lyra-theme .sheliak-app-badge {
-  background-color: #3b76f0;
-}
-
-.sheliak-separator {
+#dash.sheliak-dock .sheliak-separator {
   width: 1px;
   margin: 5px 3px;
-  background-color: rgba(255, 255, 255, 0.16);
 }
 
-.sheliak-dock.light-theme .sheliak-separator {
-  background-color: rgba(0, 0, 0, 0.14);
+#dash.sheliak-dock.vertical .sheliak-separator {
+  width: auto;
+  height: 1px;
+  margin: 3px 5px;
 }
 
 .sheliak-menu {
@@ -141,19 +61,9 @@
   min-width: 240px;
 }
 
-/* -boxpointer-gap padrão do tema é 0px, então o flyout de categoria fica
- * colado (às vezes sobreposto) à borda do menu principal; afasta um pouco. */
+/* Leave enough room to move the pointer into a sideways category menu. */
 .sheliak-category-menu {
   -boxpointer-gap: 8px;
-}
-
-.sheliak-tooltip {
-  padding: 4px 10px;
-  border-radius: 8px;
-  background-color: rgba(20, 22, 27, 0.92);
-  color: #f2f3f5;
-  font-size: 0.9em;
-  text-align: center;
 }
 
 .sheliak-app-button.dragging {
@@ -162,82 +72,23 @@
 
 .sheliak-drag-placeholder {
   border-radius: 12px;
-  background-color: rgba(255, 255, 255, 0.18);
+  background-color: st-transparentize(-st-accent-color, 0.75);
 }
 
-.sheliak-dock.light-theme .sheliak-drag-placeholder {
-  background-color: rgba(0, 0, 0, 0.12);
-}
-
-/*
- * Barra superior flutuante. Diferente do dock, aqui a paleta Lyra não depende
- * do tema instalado: quem liga `floating-panel` está pedindo o visual do Lyra,
- * então a superfície é a mesma do dock em .lyra-theme para as duas casarem na
- * tela. A margem que descola a barra das bordas vem do JS (topBar.ts).
- * O :overview repete as regras porque o tema do Shell zera o fundo do painel
- * na visão geral com especificidade equivalente à do seletor base.
- */
-#panel.sheliak-panel-floating,
-#panel.sheliak-panel-floating:overview {
-  /* lyra-slate-alt, com transparência */
-  background-color: rgba(34, 40, 49, 0.82);
-  /* lyra-mist */
-  border: 1px solid rgba(205, 214, 224, 0.18);
+/* Floating-panel preferences change geometry; #panel retains its theme. */
+#panel.sheliak-panel-floating {
   border-radius: 16px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.30);
-  color: #e8ecff;
 }
 
-#panel.sheliak-panel-floating.light-theme,
-#panel.sheliak-panel-floating.light-theme:overview {
-  background-color: rgba(246, 247, 249, 0.88);
-  border-color: rgba(20, 20, 43, 0.12);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
-  color: #14142b;
-}
-
-/* Enquanto uma janela estiver maximizada (ver topBar.ts _hasMaximizedWindow),
- * a barra cola nas bordas e fica plana: sem borda, cantos arredondados ou
- * sombra, para casar com a janela colada nela. As margens já são zeradas via
- * Clutter, não CSS. */
-#panel.sheliak-panel-floating.sheliak-panel-flush,
-#panel.sheliak-panel-floating.sheliak-panel-flush:overview {
-  border: none;
+#panel.sheliak-panel-floating.sheliak-panel-flush {
   border-radius: 0;
-  box-shadow: none;
 }
 
-/* O tema pinta o realce dos botões com branco puro via box-shadow interno;
- * trocamos pelo azul Lyra, mantendo a mesma técnica para não brigar com o
- * arredondamento em pílula que o tema já aplica. */
-#panel.sheliak-panel-floating .panel-button:focus,
-#panel.sheliak-panel-floating .panel-button:hover {
-  box-shadow: inset 0 0 0 100px rgba(110, 168, 255, 0.20);
-}
-
-#panel.sheliak-panel-floating .panel-button:active,
-#panel.sheliak-panel-floating .panel-button:checked {
-  box-shadow: inset 0 0 0 100px rgba(110, 168, 255, 0.32);
-}
-
-#panel.sheliak-panel-floating.light-theme .panel-button:focus,
-#panel.sheliak-panel-floating.light-theme .panel-button:hover {
-  box-shadow: inset 0 0 0 100px rgba(59, 118, 240, 0.16);
-}
-
-#panel.sheliak-panel-floating.light-theme .panel-button:active,
-#panel.sheliak-panel-floating.light-theme .panel-button:checked {
-  box-shadow: inset 0 0 0 100px rgba(59, 118, 240, 0.26);
-}
-
-/*
- * A caixa de busca usa a classe nativa .search-entry para receber as cores
- * e os estados de foco do tema do Shell. Aqui ajustamos apenas sua geometria.
- */
 #panel .sheliak-search-button.panel-button {
   padding: 0 4px;
 }
 
+/* The entry supplies the interaction feedback for this compound button. */
 #panel .sheliak-search-button.panel-button:hover,
 #panel .sheliak-search-button.panel-button:focus,
 #panel .sheliak-search-button.panel-button:active,
@@ -246,28 +97,12 @@
   background-color: transparent;
 }
 
-/* Mantenha a largura em sincronia com o min-width de .sheliak-search-results
- * abaixo, para o dropdown de resultados ficar alinhado com o campo. */
 .sheliak-search-entry {
   width: 300px;
   min-height: 0;
   margin: 0;
   padding: 4px 12px 4px 10px;
   spacing: 8px;
-  font-size: 0.95em;
-  border-radius: 999px;
-  border-width: 1px;
-  transition-duration: 150ms;
-}
-
-/* Ao colar a topbar em uma janela maximizada, deixe a busca acompanhar a
- * geometria plana da barra. */
-#panel.sheliak-panel-flush .sheliak-search-entry {
-  border-radius: 0;
-}
-
-.sheliak-search-entry StLabel.hint-text {
-  font-style: italic;
 }
 
 .sheliak-search-entry .search-entry-icon {
@@ -275,8 +110,6 @@
   padding: 0;
 }
 
-/* Sem seta e com um vão mínimo: o dropdown fica logo abaixo do campo, em vez
- * de flutuar deslocado como um popup-menu comum. */
 .sheliak-search-results {
   -arrow-rise: 0px;
   -boxpointer-gap: 4px;
@@ -284,30 +117,8 @@
 
 .sheliak-search-results .popup-menu-content {
   min-width: 300px;
-  padding: 6px;
-  border-radius: 14px;
-}
-
-.sheliak-search-results .popup-menu-item {
-  spacing: 10px;
-  padding: 7px 10px;
-  border-radius: 10px;
 }
 
 .sheliak-search-results .popup-menu-item .popup-menu-icon {
   icon-size: 20px;
-}
-
-/*
- * Preserve a geometria sem bordas dos menus da barra flutuante. As cores de
- * fundos, textos, realces, sombras e controles vêm das classes nativas do
- * tema do Shell, inclusive nos submenus laterais e resultados da busca.
- */
-.sheliak-floating-panel-menus .sheliak-panel-menu.popup-menu-boxpointer {
-  -arrow-border-width: 0;
-}
-
-.sheliak-floating-panel-menus .sheliak-panel-menu .popup-menu-content {
-  border: none;
-  border-radius: 0;
 }

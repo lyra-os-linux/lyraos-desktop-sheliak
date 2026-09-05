@@ -20,17 +20,22 @@ export class ShowAppsButton {
             ? new St.Icon({gicon: this._darkIcon, icon_size: 32})
             : new St.Icon({icon_name: 'view-app-grid-symbolic', icon_size: 32});
         this.actor = new St.Button({
-            style_class: 'sheliak-system-button sheliak-show-apps-button',
-            child: this._icon,
+            style_class: 'show-apps sheliak-system-button sheliak-show-apps-button',
+            child: new St.Bin({style_class: 'overview-icon', child: this._icon}),
             reactive: true,
             can_focus: true,
             track_hover: true,
             accessible_name: _('Show Applications'),
         });
         this.actor.connect('clicked', () => Main.overview.showApps());
+        this.actor.connect('style-changed', () => this._syncTheme());
     }
 
-    setLightTheme(isLight: boolean): void {
+    private _syncTheme(): void {
+        if (!this.actor.get_stage())
+            return;
+        const {red, green, blue} = this.actor.get_theme_node().get_foreground_color();
+        const isLight = 0.2126 * red + 0.7152 * green + 0.0722 * blue < 128;
         const gicon = isLight ? this._lightIcon : this._darkIcon;
         if (gicon)
             this._icon.set_gicon(gicon);

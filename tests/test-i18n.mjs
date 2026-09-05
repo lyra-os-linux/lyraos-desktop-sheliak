@@ -72,7 +72,9 @@ assert.match(makefile, /dist\/locale/);
 for (const css of ['stylesheet.css', 'prefs.css']) {
     const contents = readFileSync(css, 'utf8');
     assert.doesNotMatch(contents, /@font-face/);
-    assert.match(contents, /Noto Sans CJK SC/);
 }
+assert.match(readFileSync('prefs.css', 'utf8'), /Noto Sans CJK SC/);
+assert.doesNotMatch(readFileSync('stylesheet.css', 'utf8'), /font-family\s*:/,
+    'Shell actors inherit the system font');
 
 console.log(`i18n: ${sourceKeys.size} keys, 7 locale/fallback cases, packaging and accessibility OK`);

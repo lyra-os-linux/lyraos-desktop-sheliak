@@ -11,21 +11,12 @@ import {panelRightBox} from './shellCompat.js';
 const SHELIAK_PANEL_INDICATOR = 'sheliak-panel-indicator';
 const FLOATING_PANEL_CLASS = 'sheliak-panel-floating';
 const FLUSH_PANEL_CLASS = 'sheliak-panel-flush';
-const LIGHT_THEME_CLASS = 'light-theme';
-const FLOATING_MENUS_CLASS = 'sheliak-floating-panel-menus';
-const PANEL_MENU_CLASS = 'sheliak-panel-menu';
 const MAX_PANEL_MARGIN = 32;
 
 type VisibleActor = Clutter.Actor & {
     visible: boolean;
     hide: () => void;
     show: () => void;
-};
-
-type PanelMenuOwner = Clutter.Actor & {
-    menu?: {
-        actor?: St.Widget;
-    };
 };
 
 /**
@@ -36,13 +27,11 @@ type PanelMenuOwner = Clutter.Actor & {
  */
 export class TopBarManager {
     private _settings: Gio.Settings;
-    private _interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
     private _signals = new SignalTracker();
     private _dateMenu: VisibleActor | null;
     private _dateMenuWasVisible: boolean;
     private _rightBox: Clutter.Actor;
     private _nativeIndicators = new Map<VisibleActor, boolean>();
-    private _panelMenuActors = new Set<St.Widget>();
     private _trackedWindows = new Set<Meta.Window>();
     private _windowSignals = new Map<Meta.Window, number[]>();
     private _flush = false;
@@ -53,8 +42,6 @@ export class TopBarManager {
         margins: [number, number, number, number];
         floating: boolean;
         flush: boolean;
-        light: boolean;
-        floatingMenus: boolean;
     };
 
     constructor(settings: Gio.Settings) {
@@ -70,16 +57,10 @@ export class TopBarManager {
                 panel.margin_left, panel.margin_right],
             floating: panel.has_style_class_name(FLOATING_PANEL_CLASS),
             flush: panel.has_style_class_name(FLUSH_PANEL_CLASS),
-            light: panel.has_style_class_name(LIGHT_THEME_CLASS),
-            floatingMenus: Main.uiGroup.has_style_class_name(FLOATING_MENUS_CLASS),
         };
 
-        for (const actor of this._rightBox.get_children()) {
+        for (const actor of this._rightBox.get_children())
             this._trackNativeIndicator(actor);
-            this._trackPanelMenu(actor);
-        }
-        for (const indicator of Object.values(statusArea))
-            this._trackPanelMenu(indicator);
 
         this._signals.connect(this._settings, 'changed::panel-height',
             () => this._syncHeight());
@@ -91,12 +72,9 @@ export class TopBarManager {
             () => this._syncFloating());
         this._signals.connect(this._settings, 'changed::panel-margin',
             () => this._syncFloating());
-        this._signals.connect(this._interfaceSettings, 'changed::color-scheme',
-            () => this._syncFloating());
         this._signals.connect(this._rightBox, 'child-added',
             (_box: Clutter.Actor, actor: Clutter.Actor) => {
                 this._trackNativeIndicator(actor);
-                this._trackPanelMenu(actor);
                 this._syncIndicator(actor as VisibleActor);
             });
         this._signals.connect(global.display, 'window-created',
@@ -128,8 +106,6 @@ export class TopBarManager {
         }
         this._restoreStyle(panel, FLOATING_PANEL_CLASS, this._panelState.floating);
         this._restoreStyle(panel, FLUSH_PANEL_CLASS, this._panelState.flush);
-        this._restoreStyle(panel, LIGHT_THEME_CLASS, this._panelState.light);
-        this._restoreStyle(Main.uiGroup, FLOATING_MENUS_CLASS, this._panelState.floatingMenus);
         if (this._dateMenuWasVisible)
             this._dateMenu?.show();
         for (const [actor, wasVisible] of this._nativeIndicators) {
@@ -137,11 +113,6 @@ export class TopBarManager {
                 actor.show();
         }
         this._nativeIndicators.clear();
-        for (const actor of this._panelMenuActors) {
-            if (actor.get_parent())
-                actor.remove_style_class_name(PANEL_MENU_CLASS);
-        }
-        this._panelMenuActors.clear();
         this._trackedWindows.clear();
         this._windowSignals.clear();
         this._dateMenu = null;
@@ -166,19 +137,6 @@ export class TopBarManager {
                 indicator.hide();
             }
         });
-    }
-
-    /**
-     * Os popovers do painel são filhos de Main.uiGroup, não de #panel. A classe
-     * aplicada ao ator do próprio menu mantém a geometria sem bordas também
-     * no calendário e nas configurações rápidas. As cores vêm do tema do Shell.
-     */
-    private _trackPanelMenu(owner: Clutter.Actor): void {
-        const actor = (owner as PanelMenuOwner).menu?.actor;
-        if (!actor || this._panelMenuActors.has(actor))
-            return;
-        actor.add_style_class_name(PANEL_MENU_CLASS);
-        this._panelMenuActors.add(actor);
     }
 
     private _syncHeight(): void {
@@ -216,7 +174,6 @@ export class TopBarManager {
         panel.margin_right = margin;
         this._ownedMargins = [margin, margin, margin, margin];
         panel.add_style_class_name(FLOATING_PANEL_CLASS);
-        Main.uiGroup.add_style_class_name(FLOATING_MENUS_CLASS);
         if (flush)
             panel.add_style_class_name(FLUSH_PANEL_CLASS);
         else
@@ -225,14 +182,6 @@ export class TopBarManager {
             this._flush = flush;
             console.debug(`Sheliak: barra ${flush ? 'colada (janela maximizada)' : 'flutuante'}`);
         }
-
-        // A paleta Lyra tem variantes clara e escura; o resto do visual (raio,
-        // borda, sombra) é o mesmo do dock, para as duas superfícies
-        // combinarem na tela.
-        if (this._interfaceSettings.get_string('color-scheme') === 'prefer-dark')
-            panel.remove_style_class_name(LIGHT_THEME_CLASS);
-        else
-            panel.add_style_class_name(LIGHT_THEME_CLASS);
     }
 
     private _resetFloating(): void {
@@ -244,8 +193,6 @@ export class TopBarManager {
         this._ownedMargins = [0, 0, 0, 0];
         panel.remove_style_class_name(FLOATING_PANEL_CLASS);
         panel.remove_style_class_name(FLUSH_PANEL_CLASS);
-        panel.remove_style_class_name(LIGHT_THEME_CLASS);
-        Main.uiGroup.remove_style_class_name(FLOATING_MENUS_CLASS);
     }
 
     private _trackWindow(window: Meta.Window): void {

@@ -18,7 +18,7 @@ export class TooltipManager {
 
     constructor(private _getSide: () => DockSide) {
         this._label = new St.Label({
-            style_class: 'sheliak-tooltip',
+            style_class: 'dash-label sheliak-tooltip',
             visible: false,
         });
         Main.layoutManager.addChrome(this._label, {affectsInputRegion: false});

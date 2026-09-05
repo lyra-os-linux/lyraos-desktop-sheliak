@@ -138,7 +138,6 @@ class ApplicationsIndicator {
     // the top-level Gio.Icon type here.
     private _darkIcon: never | null = null;
     private _lightIcon: never | null = null;
-    private _interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
 
     constructor(settings: Gio.Settings, extensionPath?: string) {
         this._settings = settings;
@@ -187,7 +186,7 @@ class ApplicationsIndicator {
                 if (!open)
                     this._closeCategoryMenus();
             });
-        this._signals.connect(this._interfaceSettings, 'changed::color-scheme',
+        this._signals.connect(this.button, 'style-changed',
             () => this._syncTheme());
         this._syncTheme();
         this._rebuild();
@@ -200,7 +199,10 @@ class ApplicationsIndicator {
     }
 
     private _syncTheme(): void {
-        const isLight = this._interfaceSettings.get_string('color-scheme') !== 'prefer-dark';
+        if (!this.button.get_stage())
+            return;
+        const {red, green, blue} = this.button.get_theme_node().get_foreground_color();
+        const isLight = 0.2126 * red + 0.7152 * green + 0.0722 * blue < 128;
         const gicon = isLight ? this._lightIcon : this._darkIcon;
         if (gicon)
             this._icon.set_gicon(gicon);

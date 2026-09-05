@@ -33,8 +33,8 @@ export class TrashIcon {
             icon_size: ICON_SIZE,
         });
         this.actor = new St.Button({
-            style_class: 'sheliak-system-button sheliak-trash-button',
-            child: this._icon,
+            style_class: 'overview-tile sheliak-system-button sheliak-trash-button',
+            child: new St.Bin({style_class: 'overview-icon', child: this._icon}),
             reactive: true,
             can_focus: true,
             track_hover: true,

@@ -98,14 +98,13 @@ ser aplicada no repositório que atualmente declara a dependência.
 
 ## Identidade visual
 
-Sheliak só ativa suas cores Lyra quando `gtk-theme` ou o tema de Shell do
-usuário contém `Lyra`. Nos demais temas, usa uma superfície neutra e permite
-que ícones e controles venham do tema ativo.
+O dock, a barra superior, os menus e a busca usam os estilos nativos do GNOME
+Shell. Fundos, textos, destaques, foco e tooltips acompanham o tema ativo,
+incluindo temas personalizados e alto contraste. O dock usa as mesmas classes
+do dash do GNOME, sem impor uma paleta clara ou escura própria.
 
-Os menus e o campo de busca usam as cores do tema ativo do GNOME Shell,
-incluindo fundos, textos, destaques e estados de foco. Isso também vale para
-os submenus de categorias, o calendário e as configurações rápidas quando a
-barra flutuante está ativa.
+As preferências de posição, tamanho, ocultação e barra flutuante continuam
+controlando a disposição dos elementos.
 
 O GNOME Shell 48 não expõe uma API pública estável de desfoque do conteúdo
 atrás de um ator de extensão. A v1 usa transparência e sombra nativas; não usa
