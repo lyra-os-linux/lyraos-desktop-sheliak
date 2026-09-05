@@ -72,6 +72,10 @@ export class TopBarManager {
             () => this._syncFloating());
         this._signals.connect(this._settings, 'changed::panel-margin',
             () => this._syncFloating());
+        // St reapplies CSS margins before emitting style-changed, including
+        // when the panel is first mapped. Restore our geometry afterwards.
+        this._signals.connect(panel, 'style-changed',
+            () => this._syncMargins());
         this._signals.connect(this._rightBox, 'child-added',
             (_box: Clutter.Actor, actor: Clutter.Actor) => {
                 this._trackNativeIndicator(actor);
@@ -100,12 +104,13 @@ export class TopBarManager {
         const panel = Main.panel;
         if (this._ownedHeight !== null && panel.height === this._ownedHeight)
             panel.set_height(this._panelState.height);
-        if (this._ownedMargins && this._marginsEqual(panel, this._ownedMargins)) {
+        const restoreMargins = this._ownedMargins && this._marginsEqual(panel, this._ownedMargins);
+        this._restoreStyle(panel, FLOATING_PANEL_CLASS, this._panelState.floating);
+        this._restoreStyle(panel, FLUSH_PANEL_CLASS, this._panelState.flush);
+        if (restoreMargins) {
             [panel.margin_top, panel.margin_bottom, panel.margin_left, panel.margin_right] =
                 this._panelState.margins;
         }
-        this._restoreStyle(panel, FLOATING_PANEL_CLASS, this._panelState.floating);
-        this._restoreStyle(panel, FLUSH_PANEL_CLASS, this._panelState.flush);
         if (this._dateMenuWasVisible)
             this._dateMenu?.show();
         for (const [actor, wasVisible] of this._nativeIndicators) {
@@ -168,16 +173,13 @@ export class TopBarManager {
         const panel = Main.panel;
         const flush = this._hasMaximizedWindow();
         const margin = flush ? 0 : Math.min(MAX_PANEL_MARGIN, this._settings.get_uint('panel-margin'));
-        panel.margin_top = margin;
-        panel.margin_bottom = margin;
-        panel.margin_left = margin;
-        panel.margin_right = margin;
         this._ownedMargins = [margin, margin, margin, margin];
         panel.add_style_class_name(FLOATING_PANEL_CLASS);
         if (flush)
             panel.add_style_class_name(FLUSH_PANEL_CLASS);
         else
             panel.remove_style_class_name(FLUSH_PANEL_CLASS);
+        this._syncMargins();
         if (flush !== this._flush) {
             this._flush = flush;
             console.debug(`Sheliak: barra ${flush ? 'colada (janela maximizada)' : 'flutuante'}`);
@@ -186,13 +188,18 @@ export class TopBarManager {
 
     private _resetFloating(): void {
         const panel = Main.panel;
-        panel.margin_top = 0;
-        panel.margin_bottom = 0;
-        panel.margin_left = 0;
-        panel.margin_right = 0;
         this._ownedMargins = [0, 0, 0, 0];
         panel.remove_style_class_name(FLOATING_PANEL_CLASS);
         panel.remove_style_class_name(FLUSH_PANEL_CLASS);
+        this._syncMargins();
+    }
+
+    private _syncMargins(): void {
+        if (!this._ownedMargins)
+            return;
+        const panel = Main.panel;
+        [panel.margin_top, panel.margin_bottom, panel.margin_left, panel.margin_right] =
+            this._ownedMargins;
     }
 
     private _trackWindow(window: Meta.Window): void {
