@@ -1,6 +1,6 @@
 {
   "name": "sheliak",
-  "version": "1.12.2",
+  "version": "1.12.3",
   "private": true,
   "description": "Dock nativo do Lyra OS para GNOME Shell 48",
   "license": "GPL-3.0-or-later",

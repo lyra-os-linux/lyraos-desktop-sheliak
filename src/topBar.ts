@@ -12,8 +12,7 @@ const SHELIAK_PANEL_INDICATOR = 'sheliak-panel-indicator';
 const FLOATING_PANEL_CLASS = 'sheliak-panel-floating';
 const FLUSH_PANEL_CLASS = 'sheliak-panel-flush';
 const LIGHT_THEME_CLASS = 'light-theme';
-const SHELL_THEME_CLASS = 'sheliak-shell-theme';
-const SHELL_LIGHT_THEME_CLASS = 'sheliak-shell-light-theme';
+const FLOATING_MENUS_CLASS = 'sheliak-floating-panel-menus';
 const PANEL_MENU_CLASS = 'sheliak-panel-menu';
 const MAX_PANEL_MARGIN = 32;
 
@@ -55,8 +54,7 @@ export class TopBarManager {
         floating: boolean;
         flush: boolean;
         light: boolean;
-        shellTheme: boolean;
-        shellLight: boolean;
+        floatingMenus: boolean;
     };
 
     constructor(settings: Gio.Settings) {
@@ -73,8 +71,7 @@ export class TopBarManager {
             floating: panel.has_style_class_name(FLOATING_PANEL_CLASS),
             flush: panel.has_style_class_name(FLUSH_PANEL_CLASS),
             light: panel.has_style_class_name(LIGHT_THEME_CLASS),
-            shellTheme: Main.uiGroup.has_style_class_name(SHELL_THEME_CLASS),
-            shellLight: Main.uiGroup.has_style_class_name(SHELL_LIGHT_THEME_CLASS),
+            floatingMenus: Main.uiGroup.has_style_class_name(FLOATING_MENUS_CLASS),
         };
 
         for (const actor of this._rightBox.get_children()) {
@@ -132,8 +129,7 @@ export class TopBarManager {
         this._restoreStyle(panel, FLOATING_PANEL_CLASS, this._panelState.floating);
         this._restoreStyle(panel, FLUSH_PANEL_CLASS, this._panelState.flush);
         this._restoreStyle(panel, LIGHT_THEME_CLASS, this._panelState.light);
-        this._restoreStyle(Main.uiGroup, SHELL_THEME_CLASS, this._panelState.shellTheme);
-        this._restoreStyle(Main.uiGroup, SHELL_LIGHT_THEME_CLASS, this._panelState.shellLight);
+        this._restoreStyle(Main.uiGroup, FLOATING_MENUS_CLASS, this._panelState.floatingMenus);
         if (this._dateMenuWasVisible)
             this._dateMenu?.show();
         for (const [actor, wasVisible] of this._nativeIndicators) {
@@ -174,8 +170,8 @@ export class TopBarManager {
 
     /**
      * Os popovers do painel são filhos de Main.uiGroup, não de #panel. A classe
-     * precisa, portanto, ser aplicada ao ator do próprio menu para que a
-     * paleta da barra alcance também calendário e configurações rápidas.
+     * aplicada ao ator do próprio menu mantém a geometria sem bordas também
+     * no calendário e nas configurações rápidas. As cores vêm do tema do Shell.
      */
     private _trackPanelMenu(owner: Clutter.Actor): void {
         const actor = (owner as PanelMenuOwner).menu?.actor;
@@ -220,7 +216,7 @@ export class TopBarManager {
         panel.margin_right = margin;
         this._ownedMargins = [margin, margin, margin, margin];
         panel.add_style_class_name(FLOATING_PANEL_CLASS);
-        Main.uiGroup.add_style_class_name(SHELL_THEME_CLASS);
+        Main.uiGroup.add_style_class_name(FLOATING_MENUS_CLASS);
         if (flush)
             panel.add_style_class_name(FLUSH_PANEL_CLASS);
         else
@@ -233,13 +229,10 @@ export class TopBarManager {
         // A paleta Lyra tem variantes clara e escura; o resto do visual (raio,
         // borda, sombra) é o mesmo do dock, para as duas superfícies
         // combinarem na tela.
-        if (this._interfaceSettings.get_string('color-scheme') === 'prefer-dark') {
+        if (this._interfaceSettings.get_string('color-scheme') === 'prefer-dark')
             panel.remove_style_class_name(LIGHT_THEME_CLASS);
-            Main.uiGroup.remove_style_class_name(SHELL_LIGHT_THEME_CLASS);
-        } else {
+        else
             panel.add_style_class_name(LIGHT_THEME_CLASS);
-            Main.uiGroup.add_style_class_name(SHELL_LIGHT_THEME_CLASS);
-        }
     }
 
     private _resetFloating(): void {
@@ -252,8 +245,7 @@ export class TopBarManager {
         panel.remove_style_class_name(FLOATING_PANEL_CLASS);
         panel.remove_style_class_name(FLUSH_PANEL_CLASS);
         panel.remove_style_class_name(LIGHT_THEME_CLASS);
-        Main.uiGroup.remove_style_class_name(SHELL_THEME_CLASS);
-        Main.uiGroup.remove_style_class_name(SHELL_LIGHT_THEME_CLASS);
+        Main.uiGroup.remove_style_class_name(FLOATING_MENUS_CLASS);
     }
 
     private _trackWindow(window: Meta.Window): void {

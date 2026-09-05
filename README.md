@@ -102,6 +102,11 @@ Sheliak só ativa suas cores Lyra quando `gtk-theme` ou o tema de Shell do
 usuário contém `Lyra`. Nos demais temas, usa uma superfície neutra e permite
 que ícones e controles venham do tema ativo.
 
+Os menus e o campo de busca usam as cores do tema ativo do GNOME Shell,
+incluindo fundos, textos, destaques e estados de foco. Isso também vale para
+os submenus de categorias, o calendário e as configurações rápidas quando a
+barra flutuante está ativa.
+
 O GNOME Shell 48 não expõe uma API pública estável de desfoque do conteúdo
 atrás de um ator de extensão. A v1 usa transparência e sombra nativas; não usa
 `Shell.BlurEffect`, pois esse efeito desfocaria o próprio dock.
