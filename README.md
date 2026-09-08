@@ -98,10 +98,12 @@ ser aplicada no repositório que atualmente declara a dependência.
 
 ## Identidade visual
 
-O dock, a barra superior, os menus e a busca usam os estilos nativos do GNOME
-Shell. Fundos, textos, destaques, foco e tooltips acompanham o tema ativo,
-incluindo temas personalizados e alto contraste. O dock usa as mesmas classes
-do dash do GNOME, sem impor uma paleta clara ou escura própria.
+O fundo do dock acompanha a cor e a transparência da barra superior, incluindo
+mudanças de tema e de estado do painel. A cor de primeiro plano também vem
+do painel. O dock preserva as classes do dash nativo; menus, busca, destaques,
+estados de interação e tooltips continuam usando os estilos do tema ativo.
+Os ícones em repouso têm fundo transparente; os realces de hover, foco e
+ativação mantêm o arredondamento e o contraste definidos pelo tema.
 
 As preferências de posição, tamanho, ocultação e barra flutuante continuam
 controlando a disposição dos elementos.

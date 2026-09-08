@@ -1,6 +1,6 @@
 /* Native GNOME Shell classes provide surfaces, colors and interaction states.
- * Sheliak only adjusts the layout for a dock outside the overview and the
- * optional panel menus. The same selectors also work with user Shell themes.
+ * Dock synchronizes its surface colors with the top panel's theme node.
+ * The remaining rules adjust layout without a fixed extension palette.
  */
 #dash.sheliak-dock {
   padding: 0;
@@ -23,6 +23,14 @@
 #dash.sheliak-dock .sheliak-system-button {
   margin: 0;
   padding: 0;
+}
+
+/* Blend idle icons into the panel-colored surface. Keep this selector less
+ * specific than the native hover/focus/active rules so feedback is preserved.
+ */
+#dash .dash-item-container .sheliak-app-button .overview-icon,
+#dash .dash-item-container .sheliak-system-button .overview-icon {
+  background-color: transparent;
 }
 
 .sheliak-indicator-row {

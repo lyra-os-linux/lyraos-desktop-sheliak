@@ -190,11 +190,28 @@ export class Dock {
         }
         this._signals.connect(St.ThemeContext.get_for_stage(global.stage), 'changed',
             () => this._relayout());
+        this._signals.connect(Main.panel, 'style-changed',
+            () => this._syncPanelColors());
 
+        this._syncPanelColors();
         this._redisplay();
         this._applySettings();
         this._syncVisibility();
         console.debug('Sheliak: dock construído e sinais conectados');
+    }
+
+    private _syncPanelColors(): void {
+        const node = Main.panel.get_theme_node();
+        const background = node.get_background_color();
+        const foreground = node.get_foreground_color();
+        // Preserve the theme's alpha as well as its colors, including panel
+        // state changes. Only the dock surface receives these overrides.
+        const style = `background-color: rgba(${background.red}, ${background.green}, ` +
+            `${background.blue}, ${background.alpha / 255}); ` +
+            `color: rgba(${foreground.red}, ${foreground.green}, ` +
+            `${foreground.blue}, ${foreground.alpha / 255});`;
+        if (this._background.get_style() !== style)
+            this._background.set_style(style);
     }
 
     destroy(): void {
