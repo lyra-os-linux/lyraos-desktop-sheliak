@@ -107,6 +107,13 @@ realces suaves na cor de destaque, com o arredondamento definido pelo tema.
 Lixeira e lançador herdam a cor de primeiro plano do painel, inclusive no
 modo claro; os indicadores de aplicativos abertos usam a cor de destaque.
 
+Os menus do Shell também acompanham o fundo e o primeiro plano da barra
+superior, incluindo Aplicativos, Locais, Sistema, busca, menus do dock e
+ajustes rápidos. Ícones e contornos dos botões usam a mesma paleta; seleção,
+foco e opções ligadas continuam distintos. Ao abrir a visão geral, os menus
+preservam a última superfície legível do painel. A folha de cores temporária
+é retirada ao desativar a extensão.
+
 As preferências de posição, tamanho, ocultação e barra flutuante continuam
 controlando a disposição dos elementos.
 
