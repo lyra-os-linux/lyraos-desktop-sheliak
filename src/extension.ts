@@ -8,6 +8,7 @@ import {Dock} from './dock.js';
 import {WindowAnimationManager} from './windowAnimations.js';
 import {PanelMenus} from './panelMenus.js';
 import {PanelMenuTheme} from './panelMenuTheme.js';
+import {PanelSurfaceTheme} from './panelSurfaceTheme.js';
 import {TopBarManager} from './topBar.js';
 import {shellIsStartingUp, UnsupportedShellFeature} from './shellCompat.js';
 
@@ -22,6 +23,7 @@ export default class SheliakExtension extends Extension {
     private _windowAnimations: WindowAnimationManager | null = null;
     private _panelMenus: PanelMenus | null = null;
     private _panelMenuTheme: PanelMenuTheme | null = null;
+    private _panelSurfaceTheme: PanelSurfaceTheme | null = null;
     private _topBar: TopBarManager | null = null;
     private _settings: Gio.Settings | null = null;
     private _hideWorkspaceButtonSignal = 0;
@@ -36,6 +38,7 @@ export default class SheliakExtension extends Extension {
         try {
             this._prepareDesktopStartup();
             this._settings = this.getSettings('org.gnome.shell.extensions.sheliak');
+            this._panelSurfaceTheme = new PanelSurfaceTheme();
             this._dock = new Dock(this._settings, this.path);
             this._windowAnimations = new WindowAnimationManager(this._settings);
             this._panelMenus = new PanelMenus(this._settings, this.path);
@@ -100,6 +103,8 @@ export default class SheliakExtension extends Extension {
         this._windowAnimations = null;
         this._destroyComponent('dock', this._dock);
         this._dock = null;
+        this._destroyComponent('transparência do painel', this._panelSurfaceTheme);
+        this._panelSurfaceTheme = null;
         this._settings = null;
     }
 

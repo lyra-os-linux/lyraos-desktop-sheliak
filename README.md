@@ -103,12 +103,24 @@ ser aplicada no repositório que atualmente declara a dependência.
 
 O fundo do dock acompanha a cor e a transparência da barra superior, incluindo
 mudanças de tema e de estado do painel. A cor de primeiro plano também vem
-do painel. O dock preserva as classes do dash nativo; menus, busca, destaques,
+do painel. O fundo da barra e do dock tem 10% de transparência, preservando
+a opacidade dos textos e ícones; a aparência nativa volta ao desativar Lyra.
+O dock preserva as classes do dash nativo; menus, busca, destaques,
 estados de interação e tooltips continuam usando os estilos do tema ativo.
 Os ícones em repouso têm fundo transparente; hover, foco e ativação usam
 realces suaves na cor de destaque, com o arredondamento definido pelo tema.
 Lixeira e lançador herdam a cor de primeiro plano do painel, inclusive no
 modo claro; os indicadores de aplicativos abertos usam a cor de destaque.
+
+Ao passar o ponteiro, o ícone aumenta suavemente em até 40% e os vizinhos recebem uma
+ampliação menor. O efeito fica restrito à arte dos ícones, mantendo estáveis
+as áreas de clique e de arraste. A ampliação respeita o espaço disponível,
+funciona nas docas laterais e horizontais e volta ao normal ao sair. A opção
+Animate the Dock e a preferência de animações do GNOME também controlam esse
+efeito, que é suspenso durante arrastes e menus de contexto.
+Atualizações pendentes são canceladas ao destruir o dock; ícones removidos
+deixam de receber animações. O efeito aguarda uma geometria válida na criação
+dos atores, evitando propagar escalas inválidas durante mudanças de layout.
 
 Os menus do Shell também acompanham o fundo e o primeiro plano da barra
 superior, incluindo Aplicativos, Locais, Sistema, busca, menus do dock e

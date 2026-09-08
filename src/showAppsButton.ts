@@ -6,6 +6,7 @@ import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js'
 
 export class ShowAppsButton {
     readonly actor: St.Button;
+    get zoomActor(): St.Icon { return this._icon; }
     private readonly _icon: St.Icon;
     // St.Icon's `gicon` type comes from a separately-versioned nested
     // @girs/gio-2.0 package (pulled in via St -> Meta), which is

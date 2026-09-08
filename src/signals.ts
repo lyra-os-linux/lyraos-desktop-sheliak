@@ -29,6 +29,11 @@ export class SignalTracker {
         }
     }
 
+    /** A source being destroyed disconnects its own signals in GObject. */
+    forget(object: SignalObject): void {
+        this._signals = this._signals.filter(([source]) => source !== object);
+    }
+
     destroy(): void {
         for (const [object, id] of this._signals.splice(0)) {
             try {

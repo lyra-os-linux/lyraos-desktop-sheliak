@@ -11,6 +11,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {AppIcon} from './appIcon.js';
+import {DockMagnifier} from './dockMagnifier.js';
 import {LauncherEntryTracker} from './launcherEntries.js';
 import {ShowAppsButton} from './showAppsButton.js';
 import {SignalTracker} from './signals.js';
@@ -36,6 +37,7 @@ export class Dock {
     private _trash: TrashIcon;
     private _showApps: ShowAppsButton;
     private _tooltip: TooltipManager;
+    private _magnifier: DockMagnifier;
     private _launcherEntries: LauncherEntryTracker;
     private _revealTrigger: St.Widget;
     private _pointerOverDock = false;
@@ -105,6 +107,9 @@ export class Dock {
         this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
         this._tooltip = new TooltipManager(
             () => this._settings.get_string('position') as DockSide);
+        this._magnifier = new DockMagnifier(this.actor,
+            () => ['top', 'bottom'].includes(this._settings.get_string('position')),
+            () => this._settings.get_boolean('animation') && this._openMenuCount === 0);
         this._launcherEntries = new LauncherEntryTracker(
             (desktopId, count) => this._onLauncherEntryChanged(desktopId, count));
 
@@ -234,6 +239,7 @@ export class Dock {
             this._favoriteLaterId = 0;
         }
         this._signals.destroy();
+        this._magnifier.destroy();
         this._launcherEntries.destroy();
         this._clearDragPlaceholder();
         for (const icon of this._icons.splice(0))
@@ -248,6 +254,7 @@ export class Dock {
     }
 
     private _redisplay(): void {
+        this._magnifier.setIcons([]);
         for (const icon of this._icons.splice(0))
             icon.destroy();
 
@@ -272,6 +279,7 @@ export class Dock {
             this._icons.push(icon);
             this._appsBox.add_child(icon.actor);
         }
+        this._magnifier.setIcons([...this._icons, this._trash, this._showApps]);
         console.debug(`Sheliak: redisplay concluído (${favorites.length} favoritos, ${running.length} em execução)`);
 
         this._relayout();
@@ -301,6 +309,7 @@ export class Dock {
 
     private _onMenuStateChanged(open: boolean): void {
         this._openMenuCount += open ? 1 : -1;
+        this._magnifier.refresh();
         this._syncVisibility();
     }
 
@@ -570,6 +579,7 @@ export class Dock {
     }
 
     private _relayout(): void {
+        this._magnifier.reset(false);
         const monitor = Main.layoutManager.primaryMonitor;
         if (!monitor)
             return;
