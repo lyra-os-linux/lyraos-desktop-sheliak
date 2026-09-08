@@ -77,7 +77,10 @@ cp -a dist/. ~/.local/share/gnome-shell/extensions/sheliak@lyraos.com.br/
 gnome-extensions enable sheliak@lyraos.com.br
 ```
 
-Em Wayland, encerre e inicie a sessão depois da primeira instalação.
+Em Wayland, encerre e inicie a sessão depois da instalação ou atualização do
+pacote. Alternar entre GNOME Vanilla e Lyra reativa a extensão, mas não
+recarrega seu módulo JavaScript. Depois que a versão atualizada é carregada,
+as cores são reaplicadas em cada ativação do perfil Lyra.
 
 ## Empacotamento
 
@@ -113,6 +116,10 @@ ajustes rápidos. Ícones e contornos dos botões usam a mesma paleta; seleção
 foco e opções ligadas continuam distintos. Ao abrir a visão geral, os menus
 preservam a última superfície legível do painel. A folha de cores temporária
 é retirada ao desativar a extensão.
+
+A janela de preferências GTK do Sheliak usa a mesma paleta clara e escura
+do painel nativo, com contraste nos textos, ícones e controles. A variante
+acompanha o modo de aparência do sistema enquanto a janela está aberta.
 
 As preferências de posição, tamanho, ocultação e barra flutuante continuam
 controlando a disposição dos elementos.

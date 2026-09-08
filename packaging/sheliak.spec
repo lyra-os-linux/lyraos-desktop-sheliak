@@ -1,5 +1,5 @@
 Name:           sheliak
-Version:        1.12.4
+Version:        1.12.5
 Release:        0
 Summary:        Native Lyra OS dock for GNOME Shell
 License:        GPL-3.0-or-later
