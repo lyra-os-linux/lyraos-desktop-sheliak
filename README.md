@@ -102,8 +102,10 @@ O fundo do dock acompanha a cor e a transparência da barra superior, incluindo
 mudanças de tema e de estado do painel. A cor de primeiro plano também vem
 do painel. O dock preserva as classes do dash nativo; menus, busca, destaques,
 estados de interação e tooltips continuam usando os estilos do tema ativo.
-Os ícones em repouso têm fundo transparente; os realces de hover, foco e
-ativação mantêm o arredondamento e o contraste definidos pelo tema.
+Os ícones em repouso têm fundo transparente; hover, foco e ativação usam
+realces suaves na cor de destaque, com o arredondamento definido pelo tema.
+Lixeira e lançador herdam a cor de primeiro plano do painel, inclusive no
+modo claro; os indicadores de aplicativos abertos usam a cor de destaque.
 
 As preferências de posição, tamanho, ocultação e barra flutuante continuam
 controlando a disposição dos elementos.

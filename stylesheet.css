@@ -23,14 +23,30 @@
 #dash.sheliak-dock .sheliak-system-button {
   margin: 0;
   padding: 0;
+  color: inherit;
 }
 
-/* Blend idle icons into the panel-colored surface. Keep this selector less
- * specific than the native hover/focus/active rules so feedback is preserved.
+/* Blend idle icons into the panel-colored surface. Extension stylesheets take
+ * precedence over the base theme, so restore interaction feedback explicitly.
  */
 #dash .dash-item-container .sheliak-app-button .overview-icon,
 #dash .dash-item-container .sheliak-system-button .overview-icon {
   background-color: transparent;
+  color: inherit;
+}
+
+#dash .dash-item-container .sheliak-app-button:hover .overview-icon,
+#dash .dash-item-container .sheliak-app-button:focus .overview-icon,
+#dash .dash-item-container .sheliak-system-button:hover .overview-icon,
+#dash .dash-item-container .sheliak-system-button:focus .overview-icon {
+  background-color: st-transparentize(-st-accent-color, 0.85);
+}
+
+#dash .dash-item-container .sheliak-app-button:active .overview-icon,
+#dash .dash-item-container .sheliak-app-button:checked .overview-icon,
+#dash .dash-item-container .sheliak-system-button:active .overview-icon,
+#dash .dash-item-container .sheliak-system-button:checked .overview-icon {
+  background-color: st-transparentize(-st-accent-color, 0.7);
 }
 
 .sheliak-indicator-row {
@@ -39,6 +55,7 @@
 
 #dash.sheliak-dock .app-grid-running-dot {
   offset-y: 0;
+  background-color: -st-accent-color;
 }
 
 .sheliak-window-count,
