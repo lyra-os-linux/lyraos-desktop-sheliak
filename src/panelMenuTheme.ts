@@ -95,6 +95,26 @@ export class PanelMenuTheme {
         const states = (names: string[]) => controls
             .flatMap(selector => names.map(state => `${selector}:${state}`)).join(',\n');
         return `
+${scope} .sheliak-search-entry,
+${scope} .sheliak-search-entry:hover,
+${scope} .sheliak-search-entry:focus {
+    background-color: ${rgba(background)};
+    color: ${fg};
+    border-color: ${line};
+    box-shadow: inset 0 0 0 1px ${line};
+}
+${scope} .sheliak-search-entry:hover {
+    box-shadow: inset 0 0 0 1px ${rgba(foreground, 0.35)};
+}
+${scope} .sheliak-search-entry:focus {
+    box-shadow: inset 0 0 0 2px -st-accent-color;
+}
+${scope} .sheliak-search-entry .search-entry-icon {
+    color: inherit;
+}
+${scope} .sheliak-search-entry .hint-text {
+    color: ${rgba(foreground, 0.65)};
+}
 ${scope} .popup-menu { color: ${fg}; }
 ${scope} .popup-menu-content,
 ${scope} .popup-menu .popup-sub-menu,

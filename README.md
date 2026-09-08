@@ -112,7 +112,8 @@ modo claro; os indicadores de aplicativos abertos usam a cor de destaque.
 
 Os menus do Shell também acompanham o fundo e o primeiro plano da barra
 superior, incluindo Aplicativos, Locais, Sistema, busca, menus do dock e
-ajustes rápidos. Ícones e contornos dos botões usam a mesma paleta; seleção,
+ajustes rápidos. A caixa de busca acompanha essa superfície, com contorno
+discreto em repouso e destaque de foco ao digitar. Ícones e contornos dos botões usam a mesma paleta; seleção,
 foco e opções ligadas continuam distintos. Ao abrir a visão geral, os menus
 preservam a última superfície legível do painel. A folha de cores temporária
 é retirada ao desativar a extensão.
