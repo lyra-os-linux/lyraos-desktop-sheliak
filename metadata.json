@@ -3,8 +3,10 @@
   "name": "Sheliak",
   "description": "Native Lyra ecosystem dock for GNOME Shell",
   "gettext-domain": "sheliak",
-  "shell-version": ["48"],
-  "version": 34,
-  "version-name": "1.12.10",
+  "shell-version": [
+    "48"
+  ],
+  "version": 35,
+  "version-name": "1.13.0",
   "url": "https://github.com/lyra-os-linux/lyraos-desktop-sheliak"
 }

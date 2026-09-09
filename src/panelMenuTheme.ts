@@ -145,6 +145,17 @@ ${quick}:insensitive {
     color: ${fg};
     border-color: ${line};
 }
+${scope} .sheliak-start-menu .popup-menu-content {
+    background-color: ${rgba(background, 1)};
+    color: ${fg};
+}
+${scope} .sheliak-start-menu .sheliak-start-search {
+    background-color: st-mix(${rgba(foreground, 1)}, ${rgba(background, 1)}, 8%);
+    color: ${fg};
+}
+${scope} .sheliak-start-menu .sheliak-start-search .hint-text {
+    color: ${rgba(foreground, 0.65)};
+}
 ${controls.join(',\n')} {
     background-color: transparent;
     color: ${fg};
