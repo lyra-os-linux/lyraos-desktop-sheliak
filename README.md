@@ -106,7 +106,8 @@ mudanças de tema e de estado do painel. A cor de primeiro plano também vem
 do painel. O fundo da barra e do dock tem 10% de transparência, preservando
 a opacidade dos textos e ícones; a aparência nativa volta ao desativar Lyra.
 O preto do painel padrão escuro é suavizado para o grafite Lyra `#1c2025`,
-compartilhado pelo dock e pelos menus. Outras cores de temas são preservadas.
+e o fundo claro usa o lavanda suave `#e8ebfb`. Essas cores são compartilhadas
+pelo dock e pelos menus. Outras cores de temas são preservadas.
 O dock preserva as classes do dash nativo; menus, busca, destaques,
 estados de interação e tooltips continuam usando os estilos do tema ativo.
 Os ícones em repouso têm fundo transparente; hover, foco e ativação usam

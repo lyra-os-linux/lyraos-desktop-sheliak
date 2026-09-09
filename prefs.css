@@ -11,12 +11,12 @@ window.sheliak-preferences {
 window.sheliak-preferences.lyra-light,
 window.sheliak-preferences.lyra-light preferencespage,
 window.sheliak-preferences.lyra-light .view {
-  background-color: #fafafb;
+  background-color: #e8ebfb;
   color: #222226;
 }
 
 window.sheliak-preferences.lyra-light headerbar {
-  background-color: #fafafb;
+  background-color: #e8ebfb;
   color: #222226;
   border-color: rgba(34, 34, 38, 0.12);
   box-shadow: 0 1px rgba(34, 34, 38, 0.10);
@@ -26,7 +26,7 @@ window.sheliak-preferences.lyra-light .boxed-list,
 window.sheliak-preferences.lyra-light .boxed-list > row,
 window.sheliak-preferences.lyra-light popover > contents,
 window.sheliak-preferences.lyra-light dialog > contents {
-  background-color: #fafafb;
+  background-color: #e8ebfb;
   color: #222226;
 }
 
@@ -65,7 +65,7 @@ window.sheliak-preferences.lyra-light spinbutton,
 window.sheliak-preferences.lyra-light dropdown > button,
 window.sheliak-preferences.lyra-light entry,
 window.sheliak-preferences.lyra-light switch:not(:checked) {
-  background-color: #fafafb;
+  background-color: #e8ebfb;
   color: #222226;
   border-color: rgba(34, 34, 38, 0.14);
 }

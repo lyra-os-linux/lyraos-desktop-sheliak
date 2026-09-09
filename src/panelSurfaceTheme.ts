@@ -56,12 +56,16 @@ export class PanelSurfaceTheme {
             panel.get_style_class_name(), panel.get_style_pseudo_class(),
             this._baseStyle ?? '');
         let {red, green, blue, alpha} = native.get_background_color();
-        // Soften the native black panel with Lyra's dark surface (#1c2025).
+        // Use Lyra surfaces for the native black and off-white panels.
         // Other theme palettes and the overview's transparency are preserved.
         if (red === 0 && green === 0 && blue === 0) {
             red = 0x1c;
             green = 0x20;
             blue = 0x25;
+        } else if (red === 0xfa && green === 0xfa && blue === 0xfb) {
+            red = 0xe8;
+            green = 0xeb;
+            blue = 0xfb;
         }
         const base = this._baseStyle ? `${this._baseStyle}; ` : '';
         const style = `${base}background-color: ` +
