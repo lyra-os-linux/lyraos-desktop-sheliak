@@ -153,7 +153,14 @@ a topbar fica reta e sem margens, como com uma janela maximizada. O dock
 estendido também perde margens e cantos arredondados; nas laterais, começa
 imediatamente abaixo da topbar e alcança a borda inferior. Na posição superior,
 fica abaixo da topbar, sem sobreposição. Desativar a extensão até as bordas
-restaura as preferências do visual flutuante.
+restaura as preferências do visual flutuante. No modo estendido, os aplicativos
+ficam alinhados ao início (topo nas laterais), com lixeira e botão de aplicativos
+no final. Cada modo guarda seu próprio alinhamento.
+
+O Vega pode selecionar explicitamente o perfil Ubuntu usando `desktop-profile`.
+As preferências Lyra anteriores ficam em `lyra-profile-settings` para restauração
+ao voltar. Estender o dock por si só não seleciona Ubuntu nem esconde menus ou
+busca; essas alterações pertencem à seleção do perfil no Vega 5.1.31 ou posterior.
 
 O GNOME Shell 48 não expõe uma API pública estável de desfoque do conteúdo
 atrás de um ator de extensão. A v1 usa transparência e sombra nativas; não usa

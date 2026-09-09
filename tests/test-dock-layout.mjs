@@ -5,7 +5,7 @@ import {build} from 'esbuild';
 
 const {outputFiles} = await build({entryPoints:['src/dock.ts'], bundle:true, write:false,
     format:'iife', globalName:'DockModule', plugins:[{name:'layout-fixture', setup(builder) {
-        builder.onResolve({filter:/^(gi|resource):\/\/|^\.\//}, args => args.kind==='entry-point'?null:({path:args.path,namespace:'fixture'}));
+        builder.onResolve({filter:/^(gi|resource):\/\/|^\.\//}, args => args.kind==='entry-point'||args.path==='./dockAlignment.js'?null:({path:args.path,namespace:'fixture'}));
         builder.onLoad({filter:/.*/,namespace:'fixture'}, args => ({contents:
             args.path.endsWith('/main.js') ? 'export const {panel, layoutManager} = fixtures;' :
                 'export default {}; export const AppIcon={}, DockMagnifier={}, LauncherEntryTracker={}, '+
@@ -18,7 +18,7 @@ function fixture(position, extend, alignment) {
     const {Dock}=runInNewContext(`${outputFiles[0].text}\nDockModule`,
         {fixtures:{panel,layoutManager:{primaryMonitor:monitor}},console});
     const dock=Object.create(Dock.prototype);
-    const values={position,'extend-to-edges':extend,'content-alignment':alignment,'edge-margin':8};
+    const values={position,'extend-to-edges':extend,'content-alignment':alignment,'extended-content-alignment':alignment,'edge-margin':8};
     dock._settings={get_string:key=>values[key],get_boolean:key=>values[key],get_uint:key=>values[key]};
     dock._naturalDockSize=horizontal=>horizontal?[400,72]:[72,400];
     return {dock,panel};

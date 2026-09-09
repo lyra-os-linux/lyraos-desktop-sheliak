@@ -11,6 +11,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {AppIcon} from './appIcon.js';
+import {alignmentKey} from './dockAlignment.js';
 import {DockMagnifier} from './dockMagnifier.js';
 import {LauncherEntryTracker} from './launcherEntries.js';
 import {ShowAppsButton} from './showAppsButton.js';
@@ -184,7 +185,7 @@ export class Dock {
                 this._trackWindow(windowActor.meta_window);
         }
         for (const key of ['position', 'icon-size', 'edge-margin', 'animation',
-            'extend-to-edges', 'content-alignment', 'hide-mode', 'hide-delay',
+            'extend-to-edges', 'content-alignment', 'extended-content-alignment', 'hide-mode', 'hide-delay',
             'show-running', 'running-apps-position', 'show-trash',
             'show-apps-button', 'fullscreen-hide']) {
             this._signals.connect(this._settings, `changed::${key}`,
@@ -497,7 +498,7 @@ export class Dock {
     }
 
     private _alignedOffset(monitorStart: number, monitorSize: number, size: number, margin: number): number {
-        const alignment = this._settings.get_string('content-alignment');
+        const alignment = this._settings.get_string(alignmentKey(this._settings));
         if (alignment === 'start')
             return monitorStart + margin;
         if (alignment === 'end')
@@ -581,7 +582,7 @@ export class Dock {
 
         const position = this._settings.get_string('position');
         const extend = this._settings.get_boolean('extend-to-edges');
-        const alignment = this._settings.get_string('content-alignment');
+        const alignment = this._settings.get_string(alignmentKey(this._settings));
         const horizontal = position === 'top' || position === 'bottom';
         const orientation = horizontal
             ? Clutter.Orientation.HORIZONTAL
