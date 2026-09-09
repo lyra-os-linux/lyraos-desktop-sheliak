@@ -86,12 +86,16 @@ export class PanelMenuTheme {
 
     private _stylesheet(background: Color, foreground: Color): string {
         const scope = `.${THEME_CLASS}`;
+        const quick = `${scope} .quick-toggle-menu`;
+        // QuickSettingsMenu places expanded items in a sibling overlay,
+        // outside the actor carrying the popup-menu class.
+        const menuScopes = [`${scope} .popup-menu`, quick];
         const fg = rgba(foreground);
         const line = rgba(foreground, 0.18);
         const controls = [
             '.popup-menu-item', '.icon-button', '.button',
             '.quick-toggle-menu-button',
-        ].map(selector => `${scope} .popup-menu ${selector}`);
+        ].flatMap(selector => menuScopes.map(menu => `${menu} ${selector}`));
         const states = (names: string[]) => controls
             .flatMap(selector => names.map(state => `${selector}:${state}`)).join(',\n');
         const date = `${scope} .datemenu-popover`;
@@ -128,11 +132,16 @@ ${scope} .sheliak-search-entry .search-entry-icon {
 ${scope} .sheliak-search-entry .hint-text {
     color: ${rgba(foreground, 0.65)};
 }
-${scope} .popup-menu { color: ${fg}; }
+${menuScopes.join(',\n')} { color: ${fg}; }
 ${scope} .popup-menu-content,
-${scope} .popup-menu .popup-sub-menu,
-${scope} .popup-menu .quick-toggle-menu {
+${scope} .popup-menu .popup-sub-menu {
     background-color: ${rgba(background)};
+    color: ${fg};
+    border-color: ${line};
+}
+${quick},
+${quick}:insensitive {
+    background-color: ${rgba(background, 1)};
     color: ${fg};
     border-color: ${line};
 }
@@ -140,13 +149,12 @@ ${controls.join(',\n')} {
     background-color: transparent;
     color: ${fg};
 }
-${scope} .popup-menu .icon-button,
-${scope} .popup-menu .button,
-${scope} .popup-menu .quick-toggle-menu-button {
+${['.icon-button', '.button', '.quick-toggle-menu-button']
+    .flatMap(selector => menuScopes.map(menu => `${menu} ${selector}`)).join(',\n')} {
     box-shadow: inset 0 0 0 1px ${line};
 }
-${scope} .popup-menu .popup-menu-icon,
-${scope} .popup-menu .popup-menu-arrow {
+${['.popup-menu-icon', '.popup-menu-arrow']
+    .flatMap(selector => menuScopes.map(menu => `${menu} ${selector}`)).join(',\n')} {
     color: inherit;
     background-color: transparent;
     border-color: transparent;
@@ -165,6 +173,22 @@ ${scope} .popup-menu .quick-toggle-has-menu:checked .quick-toggle-menu-button {
 ${states(['insensitive'])} {
     background-color: transparent;
     color: ${rgba(foreground, 0.5)};
+}
+${quick} .header .subtitle,
+${quick} .device-subtitle {
+    color: ${rgba(foreground, 0.7)};
+}
+${quick} .header .icon {
+    background-color: ${rgba(foreground, 0.07)};
+    color: ${fg};
+    box-shadow: inset 0 0 0 1px ${line};
+}
+${quick} .header .icon.active {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+}
+${quick} .popup-separator-menu-item-separator {
+    background-color: ${line};
 }
 /* Date menu cards have their own Shell colors, independent of popup-menu.
  * Opaque card surfaces prevent text bleeding through notification stacks.

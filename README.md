@@ -105,6 +105,8 @@ O fundo do dock acompanha a cor e a transparência da barra superior, incluindo
 mudanças de tema e de estado do painel. A cor de primeiro plano também vem
 do painel. O fundo da barra e do dock tem 10% de transparência, preservando
 a opacidade dos textos e ícones; a aparência nativa volta ao desativar Lyra.
+O preto do painel padrão escuro é suavizado para o grafite Lyra `#1c2025`,
+compartilhado pelo dock e pelos menus. Outras cores de temas são preservadas.
 O dock preserva as classes do dash nativo; menus, busca, destaques,
 estados de interação e tooltips continuam usando os estilos do tema ativo.
 Os ícones em repouso têm fundo transparente; hover, foco e ativação usam
@@ -135,6 +137,10 @@ paleta, incluindo textos secundários, navegação, eventos e relógios. Os
 cartões ficam opacos para que notificações empilhadas não sobreponham seus
 textos. O dia atual mantém a cor de destaque, com seleção e foco visíveis
 nos modos claro e escuro.
+
+Os painéis expandidos dos ajustes rápidos também acompanham essa paleta,
+com ícones, subtítulos e seleção legíveis. Isso inclui a camada separada
+usada pelos menus de rede, Bluetooth e saída de som.
 
 A janela de preferências GTK do Sheliak usa a mesma paleta clara e escura
 do painel nativo, com contraste nos textos, ícones e controles. A variante
