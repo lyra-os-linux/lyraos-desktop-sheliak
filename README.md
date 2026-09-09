@@ -148,7 +148,12 @@ do painel nativo, com contraste nos textos, ícones e controles. A variante
 acompanha o modo de aparência do sistema enquanto a janela está aberta.
 
 As preferências de posição, tamanho, ocultação e barra flutuante continuam
-controlando a disposição dos elementos.
+controlando a disposição dos elementos. Ao ativar **Estender até as bordas**,
+a topbar fica reta e sem margens, como com uma janela maximizada. O dock
+estendido também perde margens e cantos arredondados; nas laterais, começa
+imediatamente abaixo da topbar e alcança a borda inferior. Na posição superior,
+fica abaixo da topbar, sem sobreposição. Desativar a extensão até as bordas
+restaura as preferências do visual flutuante.
 
 O GNOME Shell 48 não expõe uma API pública estável de desfoque do conteúdo
 atrás de um ator de extensão. A v1 usa transparência e sombra nativas; não usa

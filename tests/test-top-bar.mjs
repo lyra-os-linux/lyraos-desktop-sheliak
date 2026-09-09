@@ -75,7 +75,7 @@ function fixture(mapped) {
     marginProperties.forEach((key, i) => panel[key] = i + 2);
 
     const settings = new Signals();
-    const values = {'panel-height': 32, 'panel-margin': 7, 'floating-panel': true};
+    const values = {'panel-height': 32, 'panel-margin': 7, 'floating-panel': true, 'extend-to-edges': false};
     settings.get_uint = key => values[key];
     settings.get_boolean = key => values[key] ?? true;
     settings.change = (key, value) => {
@@ -162,4 +162,25 @@ test('disable restores prior geometry and disconnects all handlers', () => {
     panel.applyTheme();
     settings.change('panel-margin', 11);
     assert.deepEqual(margins(panel), [0, 0, 0, 0]);
+});
+
+test('extended dock keeps panel flush without windows and restores floating preference', () => {
+    const {panel, settings, window, manager} = fixture(true);
+    settings.change('extend-to-edges', true);
+    assert.deepEqual(margins(panel), [0, 0, 0, 0]);
+    assert.equal(panel.has_style_class_name('sheliak-panel-flush'), true);
+    settings.change('panel-margin', 15);
+    panel.applyTheme();
+    assert.deepEqual(margins(panel), [0, 0, 0, 0]);
+    settings.change('extend-to-edges', false);
+    assert.deepEqual(margins(panel), [15, 15, 15, 15]);
+    window.maximized = 3;
+    window.emit('notify::maximized-horizontally');
+    settings.change('extend-to-edges', true);
+    settings.change('extend-to-edges', false);
+    assert.deepEqual(margins(panel), [0, 0, 0, 0]);
+    window.maximized = 0;
+    window.emit('notify::maximized-vertically');
+    assert.deepEqual(margins(panel), [15, 15, 15, 15]);
+    manager.destroy();
 });

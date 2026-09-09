@@ -197,6 +197,8 @@ export class Dock {
             () => this._relayout());
         this._signals.connect(Main.panel, 'style-changed',
             () => this._syncPanelColors());
+        this._signals.connect(Main.panel, 'notify::height',
+            () => this._relayout());
 
         this._syncPanelColors();
         this._redisplay();
@@ -511,17 +513,10 @@ export class Dock {
         const position = this._settings.get_string('position');
         const extend = this._settings.get_boolean('extend-to-edges');
         const horizontal = position === 'top' || position === 'bottom';
-        // Estender até as bordas só remove a margem e os cantos arredondados
-        // na horizontal: numa doca lateral, "esticar" continua útil (ocupar
-        // toda a altura disponível), mas sem margem ela encostaria direto na
-        // topbar e na borda inferior da tela, e sem cantos arredondados
-        // destoaria da topbar flutuante e do restante da doca.
-        const margin = (extend && horizontal) ? 0 : this._settings.get_uint('edge-margin');
-        // Docas laterais compartilham o monitor primário com a topbar; sem
-        // descontar a altura dela do espaço vertical disponível, "estender
-        // até as bordas" (ou o alinhamento "start") empurra a doca por baixo
-        // da topbar em vez de encostar logo abaixo.
-        const panelHeight = horizontal ? 0 : Main.panel.height;
+        // The extended dock and flush panel form one continuous edge.
+        // Keep the configured gap only for the compact, floating layout.
+        const margin = extend ? 0 : this._settings.get_uint('edge-margin');
+        const panelHeight = (!horizontal || (extend && position === 'top')) ? Main.panel.height : 0;
         const verticalY = monitor.y + panelHeight;
         const verticalHeight = monitor.height - panelHeight;
         const [naturalWidth, naturalHeight] = this._naturalDockSize(horizontal);
@@ -535,7 +530,7 @@ export class Dock {
         let x = this._alignedOffset(monitor.x, monitor.width, width, margin);
         let y = monitor.y + monitor.height - margin - height;
         if (position === 'top') {
-            y = monitor.y + margin;
+            y = monitor.y + panelHeight + margin;
         } else if (position === 'left') {
             x = monitor.x + margin;
             y = this._alignedOffset(verticalY, verticalHeight, height, margin);
@@ -601,7 +596,7 @@ export class Dock {
             this.actor.add_style_class_name('horizontal');
             this.actor.remove_style_class_name('vertical');
         }
-        if (extend && horizontal)
+        if (extend)
             this.actor.add_style_class_name('squared');
         else
             this.actor.remove_style_class_name('squared');
