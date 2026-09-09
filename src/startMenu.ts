@@ -37,7 +37,8 @@ export class StartMenu {
         this.menu = new PopupMenu.PopupMenu(profile === 'windows11' ? anchor : button,
             profile === 'windows11' ? 0.5 : 0, St.Side.BOTTOM);
         if (profile === 'windows10') this.menu.setSourceAlignment(0);
-        this.menu.actor.add_style_class_name(`sheliak-start-menu ${profile}`);
+        for (const style of ['sheliak-start-menu', profile])
+            this.menu.actor.add_style_class_name(style);
         Main.uiGroup.add_child(this.menu.actor);
         this.menu.actor.hide();
         const manager = new PopupMenu.PopupMenuManager(button);

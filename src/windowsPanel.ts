@@ -78,7 +78,8 @@ export class WindowsPanel {
         layout._updatePanelBarrier = this._barrierOverride;
         layout._destroyPanelBarrier();
         this._centerTranslation = this._panel._centerBox.translation_x;
-        Main.panel.add_style_class_name(`sheliak-windows-panel ${profile}`);
+        for (const style of ['sheliak-windows-panel', profile])
+            Main.panel.add_style_class_name(style);
         const date = (Main.panel.statusArea as unknown as Record<string, Indicator>).dateMenu;
         this._clock = date?.container ?? null;
         this._clockParent = this._clock?.get_parent() ?? null;

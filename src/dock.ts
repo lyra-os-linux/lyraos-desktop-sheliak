@@ -628,7 +628,8 @@ export class Dock {
         if (this._panelScroll) {
             const profile = windowsProfile(this._settings) ?? 'windows11';
             for (const style of ['vertical', 'windows10', 'windows11']) this.actor.remove_style_class_name(style);
-            this.actor.add_style_class_name(`horizontal squared windows-taskbar ${profile}`);
+            for (const style of ['horizontal', 'squared', 'windows-taskbar', profile])
+                this.actor.add_style_class_name(style);
             this.actor.orientation = this._background.orientation = this._appsBox.orientation = Clutter.Orientation.HORIZONTAL;
             for (const actor of [this._leadingSpacer, this._trailingSpacer, this._separator, this._trash.actor]) actor.hide();
             this._showApps.actor.show();
