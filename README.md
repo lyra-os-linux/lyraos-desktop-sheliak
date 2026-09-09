@@ -130,6 +130,12 @@ foco e opções ligadas continuam distintos. Ao abrir a visão geral, os menus
 preservam a última superfície legível do painel. A folha de cores temporária
 é retirada ao desativar a extensão.
 
+O calendário expandido e os cartões de notificações seguem essa mesma
+paleta, incluindo textos secundários, navegação, eventos e relógios. Os
+cartões ficam opacos para que notificações empilhadas não sobreponham seus
+textos. O dia atual mantém a cor de destaque, com seleção e foco visíveis
+nos modos claro e escuro.
+
 A janela de preferências GTK do Sheliak usa a mesma paleta clara e escura
 do painel nativo, com contraste nos textos, ícones e controles. A variante
 acompanha o modo de aparência do sistema enquanto a janela está aberta.

@@ -94,6 +94,19 @@ export class PanelMenuTheme {
         ].map(selector => `${scope} .popup-menu ${selector}`);
         const states = (names: string[]) => controls
             .flatMap(selector => names.map(state => `${selector}:${state}`)).join(',\n');
+        const date = `${scope} .datemenu-popover`;
+        const cards = ['.calendar', '.datemenu-today-button', '.message',
+            '.events-button', '.world-clocks-button', '.weather-button']
+            .map(selector => `${date} ${selector}`);
+        const dateControls = ['.calendar .calendar-month-header .pager-button',
+            '.calendar .calendar-month-header .calendar-month-label',
+            '.message .message-header .message-expand-button',
+            '.message .message-header .message-close-button',
+            '.message-notification-group .message-collapse-button',
+            '.message-media-control', '.notification-button']
+            .map(selector => `${date} ${selector}`);
+        const dateStates = (selectors: string[], names: string[]) => selectors
+            .flatMap(selector => names.map(state => `${selector}:${state}`)).join(',\n');
         return `
 ${scope} .sheliak-search-entry,
 ${scope} .sheliak-search-entry:hover,
@@ -152,6 +165,95 @@ ${scope} .popup-menu .quick-toggle-has-menu:checked .quick-toggle-menu-button {
 ${states(['insensitive'])} {
     background-color: transparent;
     color: ${rgba(foreground, 0.5)};
+}
+/* Date menu cards have their own Shell colors, independent of popup-menu.
+ * Opaque card surfaces prevent text bleeding through notification stacks.
+ * Scope to the popover to preserve banners and lock-screen contrast. */
+${cards.join(',\n')},
+${date} .message:second-in-stack,
+${date} .message:lower-in-stack {
+    background-color: ${rgba(background, 1)};
+    color: ${fg};
+    border-color: ${line};
+}
+${dateStates(cards, ['hover', 'focus'])} {
+    background-color: st-mix(${rgba(foreground, 1)}, ${rgba(background, 1)}, 6%);
+    color: ${fg};
+}
+${dateStates(cards, ['active', 'checked'])} {
+    background-color: st-mix(${rgba(foreground, 1)}, ${rgba(background, 1)}, 10%);
+    color: ${fg};
+}
+${date} .message-list {
+    color: ${fg};
+    border-color: ${line};
+}
+${date} .message .message-header,
+${date} .message .message-header .event-time,
+${date} .events-button .events-box .events-title,
+${date} .events-button .events-box .events-list .event-box .event-time,
+${date} .events-button .events-box .events-list .event-placeholder,
+${date} .world-clocks-button .world-clocks-header,
+${date} .world-clocks-button .world-clocks-grid .world-clocks-timezone,
+${date} .weather-button .weather-box .weather-header-box .weather-header {
+    color: ${rgba(foreground, 0.7)};
+}
+${date} .message-list .message-list-placeholder {
+    color: ${rgba(foreground, 0.55)};
+}
+${dateControls.join(',\n')} {
+    background-color: transparent;
+    color: ${fg};
+    box-shadow: inset 0 0 0 1px ${line};
+}
+${dateStates(dateControls, ['hover', 'focus'])} {
+    background-color: st-transparentize(-st-accent-color, 0.85);
+    color: ${fg};
+}
+${dateStates(dateControls, ['active', 'checked'])} {
+    background-color: st-transparentize(-st-accent-color, 0.7);
+    color: ${fg};
+}
+${dateStates(dateControls, ['insensitive'])} {
+    background-color: transparent;
+    color: ${rgba(foreground, 0.5)};
+}
+${date} .message .message-box .message-icon.message-themed-icon {
+    background-color: ${rgba(foreground, 0.07)};
+    color: ${fg};
+    box-shadow: inset 0 0 0 1px ${line};
+}
+${date} .calendar .calendar-month-header .calendar-month-label {
+    color: ${fg} !important;
+}
+${date} .calendar .calendar-day,
+${date} .calendar .calendar-day-heading {
+    color: ${fg};
+    background-color: transparent;
+}
+${date} .calendar .calendar-day.calendar-weekend {
+    color: ${rgba(foreground, 0.7)};
+}
+${date} .calendar .calendar-day.calendar-other-month,
+${date} .calendar .calendar-day.calendar-other-month.calendar-weekend {
+    color: ${rgba(foreground, 0.45)};
+}
+${date} .calendar .calendar-week-number {
+    color: ${rgba(foreground, 0.7)};
+    background-color: ${rgba(foreground, 0.08)};
+}
+${date} .calendar .calendar-day:hover,
+${date} .calendar .calendar-day:focus,
+${date} .calendar .calendar-day:selected {
+    color: ${fg};
+    background-color: st-transparentize(-st-accent-color, 0.8);
+}
+${date} .calendar .calendar-day.calendar-today,
+${date} .calendar .calendar-day.calendar-today:hover,
+${date} .calendar .calendar-day.calendar-today:focus,
+${date} .calendar .calendar-day.calendar-today:selected {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color !important;
 }
 `;
     }
