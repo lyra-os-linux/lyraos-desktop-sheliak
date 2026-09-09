@@ -63,9 +63,9 @@ export class PanelSurfaceTheme {
             green = 0x20;
             blue = 0x25;
         } else if (red === 0xfa && green === 0xfa && blue === 0xfb) {
-            red = 0xe8;
-            green = 0xeb;
-            blue = 0xfb;
+            red = 0xce;
+            green = 0xd3;
+            blue = 0xf3;
         }
         const base = this._baseStyle ? `${this._baseStyle}; ` : '';
         const style = `${base}background-color: ` +
