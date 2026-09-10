@@ -13,7 +13,7 @@ import {StartMenu} from './startMenu.js';
 
 type PanelBoxes = { _centerBox: St.BoxLayout; _rightBox: St.BoxLayout };
 type Indicator = {container: St.Widget; menu?: PopupMenu.PopupMenu};
-type Arrow = {updateArrowSide(side: St.Side): void; readonly arrowSide: St.Side};
+type Arrow = St.Widget & {updateArrowSide(side: St.Side): void; readonly arrowSide: St.Side};
 type ChromeParams = {affectsInputRegion: boolean; affectsStruts: boolean; trackFullscreen: boolean};
 type PanelLayout = {
     _trackedActors: Array<ChromeParams & {actor: Clutter.Actor}>;
@@ -32,7 +32,7 @@ export class WindowsPanel {
     private _clock: St.Widget | null = null;
     private _clockParent: Clutter.Actor | null = null;
     private _clockIndex = 0;
-    private _arrows = new Map<Arrow, St.Side>();
+    private _arrows = new Map<Arrow, {side: St.Side; destroyId: number}>();
     private _start: StartMenu | null = null;
     private _overlayHandler = 0;
     private _overlayOriginal = 0;
@@ -108,7 +108,11 @@ export class WindowsPanel {
             if (!indicator.container || !this._panel._rightBox.contains(indicator.container)) continue;
             const pointer = (indicator.menu as unknown as {_boxPointer?: Arrow})?._boxPointer;
             if (pointer && !this._arrows.has(pointer)) {
-                this._arrows.set(pointer, pointer.arrowSide);
+                const destroyId = this._signals.connect(pointer, 'destroy', () => {
+                    this._arrows.delete(pointer);
+                    this._signals.forget(pointer);
+                });
+                this._arrows.set(pointer, {side: pointer.arrowSide, destroyId});
                 pointer.updateArrowSide(St.Side.BOTTOM);
             }
         }
@@ -154,7 +158,10 @@ export class WindowsPanel {
         }
         this._clock = null;
         this._clockParent = null;
-        for (const [pointer, side] of this._arrows) pointer.updateArrowSide(side);
+        for (const [pointer, {side, destroyId}] of this._arrows) {
+            this._signals.disconnect(pointer, destroyId);
+            pointer.updateArrowSide(side);
+        }
         this._arrows.clear();
         for (const style of ['sheliak-windows-panel', 'windows10', 'windows11'])
             Main.panel.remove_style_class_name(style);
