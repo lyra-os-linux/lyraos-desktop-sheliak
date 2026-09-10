@@ -682,6 +682,12 @@ class SearchIndicator {
                 icon_name: 'edit-find-symbolic',
             }),
         });
+        // The panel allocates status-area actors in a fixed row. Keep enough
+        // room for GNOME's centered clock and right indicators on narrow
+        // outputs instead of allowing the search entry to overlap them.
+        this._signals.connect(Main.panel, 'notify::width', () => this._syncWidth());
+        this._signals.connect(global.display, 'monitors-changed', () => this._syncWidth());
+        this._syncWidth();
 
         // O “x” só aparece quando há texto; St.Entry não gerencia a
         // visibilidade do ícone, então ela é alternada em _updateResults().
@@ -744,6 +750,15 @@ class SearchIndicator {
 
         this._signals.connect(this._appSystem, 'installed-changed', () => this._rebuildIndex());
         this._rebuildIndex();
+    }
+
+    private _syncWidth(): void {
+        const panelWidth = Main.panel.width;
+        if (!Number.isFinite(panelWidth) || panelWidth <= 0)
+            return;
+        const reserved = 360;
+        const width = Math.max(120, Math.min(300, panelWidth - reserved));
+        this._entry.set_width(width);
     }
 
     destroy(): void {
