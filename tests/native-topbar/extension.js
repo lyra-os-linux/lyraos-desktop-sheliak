@@ -72,6 +72,15 @@ export default class TopbarTest extends Extension {
         await wait(600);
         this.ext = Main.extensionManager.lookup('sheliak@lyraos.com.br').stateObj;
         if (!this.ext?._panelMenus) throw Error('Sheliak did not load');
+        const expected = {
+            en_US: ['Applications', 'Search applications and files…'],
+            pt_BR: ['Aplicativos', 'Buscar aplicativos e arquivos…'],
+            es_ES: ['Aplicaciones', 'Buscar aplicaciones y archivos…'],
+        }[GLib.getenv('LANGUAGE')];
+        const actual = [this.ext._panelMenus._applications.button.get_first_child().get_last_child().text,
+            this.ext._panelMenus._search._entry.hint_text];
+        this.check('real catalog uses the requested language', JSON.stringify(actual) === JSON.stringify(expected),
+            {expected, actual, locale: GLib.getenv('LC_ALL')});
         const seat = global.stage.get_context().get_backend().get_default_seat();
         this.keyboard = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
         this.pointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);

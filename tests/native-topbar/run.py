@@ -38,7 +38,7 @@ if not args.inside_private_bus:
         env.update(GSETTINGS_BACKEND='keyfile', LIBGL_ALWAYS_SOFTWARE='1', GALLIUM_DRIVER='llvmpipe', LP_NUM_THREADS='2',
                    XDG_SESSION_TYPE='wayland', XDG_CURRENT_DESKTOP='GNOME',
                    SHELIAK_NATIVE_RESULT=str(result), SHELIAK_PRIVATE_NATIVE_TEST='1',
-                   LANGUAGE=args.language, LANG=args.language+'.UTF-8')
+                   LANGUAGE=args.language, LANG=args.language+'.UTF-8', LC_ALL=args.language+'.UTF-8')
         extensions = root / 'data/gnome-shell/extensions'
         uuid = 'sheliak-topbar-test@lyraos.local'
         probe = extensions / uuid
