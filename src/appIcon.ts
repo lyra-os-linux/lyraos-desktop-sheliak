@@ -8,6 +8,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {AppContextMenu} from './contextMenu.js';
+import {AppButton} from './appAccessible.js';
 import {SignalTracker} from './signals.js';
 import {TooltipManager} from './tooltip.js';
 
@@ -31,6 +32,7 @@ export class AppIcon {
     private _badge: St.Label;
     private _runningIndicator: St.Widget;
     private _windowCountIndicator: St.Label;
+    private _iconSize: number;
 
     constructor(
         app: Shell.App,
@@ -44,7 +46,8 @@ export class AppIcon {
         this.app = app;
         this.favorite = favorite;
         this.appId = app.get_id();
-        this.actor = new St.Button({
+        this._iconSize = iconSize;
+        this.actor = new AppButton({
             style_class: 'overview-tile sheliak-app-button',
             reactive: true,
             can_focus: true,
@@ -101,15 +104,15 @@ export class AppIcon {
                 (_menu: unknown, open: boolean) => onMenuStateChanged(open));
         }
 
+        // St.Button emits clicked for mouse, keyboard and accessible activation.
+        // Let its primary release handler run so cancelled presses and drags
+        // cannot activate the application, and each click is handled only once.
+        this._signals.connect(this.actor, 'clicked', () => this.activate());
         this._signals.connect(this.actor, 'button-release-event',
             (_actor, event: Clutter.Event) => {
                 const button = event.get_button();
                 if (button === Clutter.BUTTON_SECONDARY) {
                     this.menu.toggle();
-                    return Clutter.EVENT_STOP;
-                }
-                if (button === Clutter.BUTTON_PRIMARY) {
-                    this.activate();
                     return Clutter.EVENT_STOP;
                 }
                 return Clutter.EVENT_PROPAGATE;
@@ -196,6 +199,16 @@ export class AppIcon {
         });
         for (const window of this.app.get_windows())
             window.set_icon_geometry(rect);
+    }
+
+    // Drag a separate icon, so DND cannot reparent or destroy the live button
+    // (which would lose focus, ordering and its accessible identity).
+    getDragActor(): Clutter.Actor {
+        return this.app.create_icon_texture(this._iconSize);
+    }
+
+    getDragActorSource(): Clutter.Actor {
+        return this.zoomActor;
     }
 
     activate(): void {

@@ -1,11 +1,36 @@
 import St from 'gi://St';
 import Shell from 'gi://Shell';
 import Meta from 'gi://Meta';
+import Clutter from 'gi://Clutter';
 
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
+
+// PopupMenu normally consumes Enter/Space on its source to open itself. For
+// application buttons those keys must reach St.Button and activate the app.
+class AppPopupMenu extends PopupMenu.PopupMenu {
+    constructor(source: St.Widget, private readonly _openFromKeyboard: () => void) {
+        super(source, 0.5, St.Side.BOTTOM);
+    }
+
+    _onKeyPress(actor: Clutter.Actor, event: Clutter.Event): boolean {
+        if (!actor.reactive)
+            return Clutter.EVENT_PROPAGATE;
+        const key = event.get_key_symbol();
+        const modifiers = event.get_state() & Clutter.ModifierType.MODIFIER_MASK
+            & ~Clutter.ModifierType.MOD2_MASK;
+        if ((key === Clutter.KEY_Menu && modifiers === 0) ||
+            (key === Clutter.KEY_F10 && modifiers === Clutter.ModifierType.SHIFT_MASK)) {
+            this._openFromKeyboard();
+            if (this.isOpen)
+                this.actor.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
+            return Clutter.EVENT_STOP;
+        }
+        return Clutter.EVENT_PROPAGATE;
+    }
+}
 
 export class AppContextMenu {
     readonly menu: PopupMenu.PopupMenu;
@@ -15,7 +40,7 @@ export class AppContextMenu {
     constructor(source: St.Widget, app: Shell.App) {
         this._app = app;
         this._favorites = AppFavorites.getAppFavorites();
-        this.menu = new PopupMenu.PopupMenu(source, 0.5, St.Side.BOTTOM);
+        this.menu = new AppPopupMenu(source, () => this.toggle());
         this.menu.actor.add_style_class_name('sheliak-menu');
         Main.uiGroup.add_child(this.menu.actor);
         this.menu.actor.hide();

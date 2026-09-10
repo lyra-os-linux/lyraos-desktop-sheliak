@@ -168,6 +168,13 @@ export class Dock {
 
         this._syncChrome();
 
+        // Expose the dock through GNOME's Ctrl+Alt+Tab switcher and keep it
+        // revealed while keyboard/assistive focus is inside it. The manager
+        // unregisters the group automatically when the actor is destroyed.
+        Main.ctrlAltTabManager.addGroup(this.actor, 'Sheliak', 'view-app-grid-symbolic');
+        this._signals.connect(global.stage, 'notify::key-focus',
+            () => this._syncVisibility());
+
         this._signals.connect(this.actor, 'enter-event', () => {
             this._pointerOverDock = true;
             this._syncVisibility();
@@ -405,7 +412,7 @@ export class Dock {
         }
 
         const rawIndex = boxSize > 0
-            ? Math.floor(Math.clamp(coord * numChildren / boxSize, 0, numChildren))
+            ? Math.floor(Math.clamp(coord * numChildren / boxSize + 0.5, 0, numChildren))
             : 0;
         const pos = Math.clamp(rawIndex - start, 0, count);
 
@@ -467,7 +474,9 @@ export class Dock {
             this._hideTimeoutId = 0;
         }
 
-        const shouldShow = this._pointerOverDock || this._pointerOverTrigger
+        const focus = global.stage.get_key_focus();
+        const shouldShow = (focus !== null && this.actor.contains(focus))
+            || this._pointerOverDock || this._pointerOverTrigger
             || this._openMenuCount > 0;
         if (shouldShow) {
             this._setHidden(false);

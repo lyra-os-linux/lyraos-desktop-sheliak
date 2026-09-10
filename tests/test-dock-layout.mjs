@@ -7,7 +7,7 @@ const {outputFiles} = await build({entryPoints:['src/dock.ts'], bundle:true, wri
     format:'iife', globalName:'DockModule', plugins:[{name:'layout-fixture', setup(builder) {
         builder.onResolve({filter:/^(gi|resource):\/\/|^\.\//}, args => args.kind==='entry-point'||['./dockAlignment.js','./desktopProfile.js'].includes(args.path)?null:({path:args.path,namespace:'fixture'}));
         builder.onLoad({filter:/.*/,namespace:'fixture'}, args => ({contents:
-            args.path.endsWith('/main.js') ? 'export const {panel, layoutManager} = fixtures;' :
+            args.path.endsWith('/main.js') ? 'export const {panel, layoutManager, ctrlAltTabManager} = fixtures;' :
                 'export default {}; export const AppIcon={}, DockMagnifier={}, LauncherEntryTracker={}, '+
                 'ShowAppsButton={}, SignalTracker={}, shellIsStartingUp={}, TooltipManager={}, TrashIcon={}, getAppFavorites={}, PopupMenuManager={}, DragMotionResult={};'}));
     }}]});
