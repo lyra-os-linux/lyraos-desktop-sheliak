@@ -11,6 +11,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {AppIcon} from './appIcon.js';
+import {alignmentKey} from './dockAlignment.js';
+import {DockMagnifier} from './dockMagnifier.js';
 import {LauncherEntryTracker} from './launcherEntries.js';
 import {ShowAppsButton} from './showAppsButton.js';
 import {SignalTracker} from './signals.js';
@@ -36,6 +38,7 @@ export class Dock {
     private _trash: TrashIcon;
     private _showApps: ShowAppsButton;
     private _tooltip: TooltipManager;
+    private _magnifier: DockMagnifier;
     private _launcherEntries: LauncherEntryTracker;
     private _revealTrigger: St.Widget;
     private _pointerOverDock = false;
@@ -105,6 +108,9 @@ export class Dock {
         this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
         this._tooltip = new TooltipManager(
             () => this._settings.get_string('position') as DockSide);
+        this._magnifier = new DockMagnifier(this.actor,
+            () => ['top', 'bottom'].includes(this._settings.get_string('position')),
+            () => this._settings.get_boolean('animation') && this._openMenuCount === 0);
         this._launcherEntries = new LauncherEntryTracker(
             (desktopId, count) => this._onLauncherEntryChanged(desktopId, count));
 
@@ -179,7 +185,7 @@ export class Dock {
                 this._trackWindow(windowActor.meta_window);
         }
         for (const key of ['position', 'icon-size', 'edge-margin', 'animation',
-            'extend-to-edges', 'content-alignment', 'hide-mode', 'hide-delay',
+            'extend-to-edges', 'content-alignment', 'extended-content-alignment', 'hide-mode', 'hide-delay',
             'show-running', 'running-apps-position', 'show-trash',
             'show-apps-button', 'fullscreen-hide']) {
             this._signals.connect(this._settings, `changed::${key}`,
@@ -190,11 +196,30 @@ export class Dock {
         }
         this._signals.connect(St.ThemeContext.get_for_stage(global.stage), 'changed',
             () => this._relayout());
+        this._signals.connect(Main.panel, 'style-changed',
+            () => this._syncPanelColors());
+        this._signals.connect(Main.panel, 'notify::height',
+            () => this._relayout());
 
+        this._syncPanelColors();
         this._redisplay();
         this._applySettings();
         this._syncVisibility();
         console.debug('Sheliak: dock construído e sinais conectados');
+    }
+
+    private _syncPanelColors(): void {
+        const node = Main.panel.get_theme_node();
+        const background = node.get_background_color();
+        const foreground = node.get_foreground_color();
+        // Preserve the theme's alpha as well as its colors, including panel
+        // state changes. Only the dock surface receives these overrides.
+        const style = `background-color: rgba(${background.red}, ${background.green}, ` +
+            `${background.blue}, ${background.alpha / 255}); ` +
+            `color: rgba(${foreground.red}, ${foreground.green}, ` +
+            `${foreground.blue}, ${foreground.alpha / 255});`;
+        if (this._background.get_style() !== style)
+            this._background.set_style(style);
     }
 
     destroy(): void {
@@ -217,6 +242,7 @@ export class Dock {
             this._favoriteLaterId = 0;
         }
         this._signals.destroy();
+        this._magnifier.destroy();
         this._launcherEntries.destroy();
         this._clearDragPlaceholder();
         for (const icon of this._icons.splice(0))
@@ -231,6 +257,7 @@ export class Dock {
     }
 
     private _redisplay(): void {
+        this._magnifier.setIcons([]);
         for (const icon of this._icons.splice(0))
             icon.destroy();
 
@@ -255,6 +282,7 @@ export class Dock {
             this._icons.push(icon);
             this._appsBox.add_child(icon.actor);
         }
+        this._magnifier.setIcons([...this._icons, this._trash, this._showApps]);
         console.debug(`Sheliak: redisplay concluído (${favorites.length} favoritos, ${running.length} em execução)`);
 
         this._relayout();
@@ -284,6 +312,7 @@ export class Dock {
 
     private _onMenuStateChanged(open: boolean): void {
         this._openMenuCount += open ? 1 : -1;
+        this._magnifier.refresh();
         this._syncVisibility();
     }
 
@@ -469,7 +498,7 @@ export class Dock {
     }
 
     private _alignedOffset(monitorStart: number, monitorSize: number, size: number, margin: number): number {
-        const alignment = this._settings.get_string('content-alignment');
+        const alignment = this._settings.get_string(alignmentKey(this._settings));
         if (alignment === 'start')
             return monitorStart + margin;
         if (alignment === 'end')
@@ -485,17 +514,10 @@ export class Dock {
         const position = this._settings.get_string('position');
         const extend = this._settings.get_boolean('extend-to-edges');
         const horizontal = position === 'top' || position === 'bottom';
-        // Estender até as bordas só remove a margem e os cantos arredondados
-        // na horizontal: numa doca lateral, "esticar" continua útil (ocupar
-        // toda a altura disponível), mas sem margem ela encostaria direto na
-        // topbar e na borda inferior da tela, e sem cantos arredondados
-        // destoaria da topbar flutuante e do restante da doca.
-        const margin = (extend && horizontal) ? 0 : this._settings.get_uint('edge-margin');
-        // Docas laterais compartilham o monitor primário com a topbar; sem
-        // descontar a altura dela do espaço vertical disponível, "estender
-        // até as bordas" (ou o alinhamento "start") empurra a doca por baixo
-        // da topbar em vez de encostar logo abaixo.
-        const panelHeight = horizontal ? 0 : Main.panel.height;
+        // The extended dock and flush panel form one continuous edge.
+        // Keep the configured gap only for the compact, floating layout.
+        const margin = extend ? 0 : this._settings.get_uint('edge-margin');
+        const panelHeight = (!horizontal || (extend && position === 'top')) ? Main.panel.height : 0;
         const verticalY = monitor.y + panelHeight;
         const verticalHeight = monitor.height - panelHeight;
         const [naturalWidth, naturalHeight] = this._naturalDockSize(horizontal);
@@ -509,7 +531,7 @@ export class Dock {
         let x = this._alignedOffset(monitor.x, monitor.width, width, margin);
         let y = monitor.y + monitor.height - margin - height;
         if (position === 'top') {
-            y = monitor.y + margin;
+            y = monitor.y + panelHeight + margin;
         } else if (position === 'left') {
             x = monitor.x + margin;
             y = this._alignedOffset(verticalY, verticalHeight, height, margin);
@@ -553,13 +575,14 @@ export class Dock {
     }
 
     private _relayout(): void {
+        this._magnifier.reset(false);
         const monitor = Main.layoutManager.primaryMonitor;
         if (!monitor)
             return;
 
         const position = this._settings.get_string('position');
         const extend = this._settings.get_boolean('extend-to-edges');
-        const alignment = this._settings.get_string('content-alignment');
+        const alignment = this._settings.get_string(alignmentKey(this._settings));
         const horizontal = position === 'top' || position === 'bottom';
         const orientation = horizontal
             ? Clutter.Orientation.HORIZONTAL
@@ -574,7 +597,7 @@ export class Dock {
             this.actor.add_style_class_name('horizontal');
             this.actor.remove_style_class_name('vertical');
         }
-        if (extend && horizontal)
+        if (extend)
             this.actor.add_style_class_name('squared');
         else
             this.actor.remove_style_class_name('squared');

@@ -1,3 +1,4 @@
+import {alignmentKey} from './dockAlignment.js';
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
@@ -78,11 +79,11 @@ function addContentAlignment(group: Adw.PreferencesGroup, settings: Gio.Settings
     const values = [['start', _('Start')], ['center', _('Center')], ['end', _('End')]];
     const model = Gtk.StringList.new(values.map(([, label]) => label));
     const combo = new Gtk.DropDown({model, valign: Gtk.Align.CENTER});
-    const selected = () => Math.max(0, values.findIndex(([id]) => id === settings.get_string('content-alignment')));
+    const selected = () => Math.max(0, values.findIndex(([id]) => id === settings.get_string(alignmentKey(settings))));
     combo.selected = selected();
-    combo.connect('notify::selected', () => settings.set_string('content-alignment', values[combo.selected]?.[0] ?? 'center'));
-    connectForWidget(settings, 'changed::content-alignment', combo,
-        () => combo.set_selected(selected()));
+    combo.connect('notify::selected', () => settings.set_string(alignmentKey(settings), values[combo.selected]?.[0] ?? 'start'));
+    for (const key of ['content-alignment', 'extended-content-alignment', 'extend-to-edges'])
+        connectForWidget(settings, `changed::${key}`, combo, () => combo.set_selected(selected()));
     row.add_suffix(combo);
     group.add(row);
 }

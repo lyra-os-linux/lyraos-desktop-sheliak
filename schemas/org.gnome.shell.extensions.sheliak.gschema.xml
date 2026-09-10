@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.sheliak" path="/org/gnome/shell/extensions/sheliak/">
+    <key name="desktop-profile" type="s"><default>'lyra'</default><summary>Explicit Vega desktop profile: lyra or ubuntu; independent from dock geometry</summary></key>
+    <key name="lyra-profile-settings" type="s"><default>''</default><summary>Saved Lyra layout and menu preferences while the Ubuntu profile is active</summary></key>
     <key name="position" type="s"><default>'left'</default><summary>Dock position</summary></key>
     <key name="hide-mode" type="s"><default>'intelligent'</default><summary>Dock visibility mode: intelligent, autohide, or always visible</summary></key>
     <key name="autohide" type="b"><default>true</default><summary>Legacy auto-hide setting</summary></key>
@@ -11,6 +13,7 @@
     <key name="minimize-animation" type="s"><default>'zoom'</default><summary>Window minimize and restore animation: zoom, fade, or none</summary></key>
     <key name="extend-to-edges" type="b"><default>false</default><summary>Stretch the dock across the full length of its edge</summary></key>
     <key name="content-alignment" type="s"><default>'center'</default><summary>Alignment of favorites and running apps along the dock: start, center, or end</summary></key>
+    <key name="extended-content-alignment" type="s"><default>'start'</default><summary>Independent alignment in extended mode: start, center, or end</summary></key>
     <key name="show-running" type="b"><default>true</default><summary>Show running applications</summary></key>
     <key name="running-apps-position" type="s"><default>'end'</default><summary>Where running, non-favorite applications appear relative to favorites: start or end</summary></key>
     <key name="show-trash" type="b"><default>true</default><summary>Show the trash button</summary></key>

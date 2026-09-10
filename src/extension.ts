@@ -7,6 +7,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Dock} from './dock.js';
 import {WindowAnimationManager} from './windowAnimations.js';
 import {PanelMenus} from './panelMenus.js';
+import {PanelMenuTheme} from './panelMenuTheme.js';
+import {PanelSurfaceTheme} from './panelSurfaceTheme.js';
 import {TopBarManager} from './topBar.js';
 import {shellIsStartingUp, UnsupportedShellFeature} from './shellCompat.js';
 
@@ -20,6 +22,8 @@ export default class SheliakExtension extends Extension {
     private _dock: Dock | null = null;
     private _windowAnimations: WindowAnimationManager | null = null;
     private _panelMenus: PanelMenus | null = null;
+    private _panelMenuTheme: PanelMenuTheme | null = null;
+    private _panelSurfaceTheme: PanelSurfaceTheme | null = null;
     private _topBar: TopBarManager | null = null;
     private _settings: Gio.Settings | null = null;
     private _hideWorkspaceButtonSignal = 0;
@@ -34,9 +38,11 @@ export default class SheliakExtension extends Extension {
         try {
             this._prepareDesktopStartup();
             this._settings = this.getSettings('org.gnome.shell.extensions.sheliak');
+            this._panelSurfaceTheme = new PanelSurfaceTheme();
             this._dock = new Dock(this._settings, this.path);
             this._windowAnimations = new WindowAnimationManager(this._settings);
             this._panelMenus = new PanelMenus(this._settings, this.path);
+            this._panelMenuTheme = new PanelMenuTheme();
             try {
                 this._topBar = new TopBarManager(this._settings);
             } catch (error) {
@@ -87,6 +93,8 @@ export default class SheliakExtension extends Extension {
             this._activitiesButton?.show();
         this._activitiesButton = null;
         this._activitiesButtonWasVisible = false;
+        this._destroyComponent('cores dos menus', this._panelMenuTheme);
+        this._panelMenuTheme = null;
         this._destroyComponent('barra superior', this._topBar);
         this._topBar = null;
         this._destroyComponent('menus do painel', this._panelMenus);
@@ -95,6 +103,8 @@ export default class SheliakExtension extends Extension {
         this._windowAnimations = null;
         this._destroyComponent('dock', this._dock);
         this._dock = null;
+        this._destroyComponent('transparência do painel', this._panelSurfaceTheme);
+        this._panelSurfaceTheme = null;
         this._settings = null;
     }
 

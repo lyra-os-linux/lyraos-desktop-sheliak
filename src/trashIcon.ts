@@ -17,6 +17,7 @@ Gio._promisify(Gio.FileEnumerator.prototype, 'close_async', 'close_finish');
 
 export class TrashIcon {
     readonly actor: St.Button;
+    get zoomActor(): St.Icon { return this._icon; }
     private _icon: St.Icon;
     private _trash = Gio.File.new_for_uri(TRASH_URI);
     private _monitor: Gio.FileMonitor | null = null;

@@ -22,6 +22,7 @@ function toggleStyle(actor: St.Widget, name: string, enabled: boolean): void {
 
 export class AppIcon {
     readonly actor: St.Button;
+    readonly zoomActor: Clutter.Actor;
     readonly menu: AppContextMenu;
     readonly appId: string;
     readonly app: Shell.App;
@@ -52,6 +53,7 @@ export class AppIcon {
         });
 
         const iconContainer = new St.Widget({layout_manager: new Clutter.BinLayout()});
+        this.zoomActor = iconContainer;
         iconContainer.add_child(app.create_icon_texture(iconSize));
         this._badge = new St.Label({
             style_class: 'dash-label sheliak-app-badge',

@@ -72,6 +72,8 @@ export class TopBarManager {
             () => this._syncFloating());
         this._signals.connect(this._settings, 'changed::panel-margin',
             () => this._syncFloating());
+        this._signals.connect(this._settings, 'changed::extend-to-edges',
+            () => this._syncFloating());
         // St reapplies CSS margins before emitting style-changed, including
         // when the panel is first mapped. Restore our geometry afterwards.
         this._signals.connect(panel, 'style-changed',
@@ -171,7 +173,7 @@ export class TopBarManager {
         }
 
         const panel = Main.panel;
-        const flush = this._hasMaximizedWindow();
+        const flush = this._settings.get_boolean('extend-to-edges') || this._hasMaximizedWindow();
         const margin = flush ? 0 : Math.min(MAX_PANEL_MARGIN, this._settings.get_uint('panel-margin'));
         this._ownedMargins = [margin, margin, margin, margin];
         panel.add_style_class_name(FLOATING_PANEL_CLASS);
@@ -182,7 +184,7 @@ export class TopBarManager {
         this._syncMargins();
         if (flush !== this._flush) {
             this._flush = flush;
-            console.debug(`Sheliak: barra ${flush ? 'colada (janela maximizada)' : 'flutuante'}`);
+            console.debug(`Sheliak: barra ${flush ? 'colada (dock estendido ou janela maximizada)' : 'flutuante'}`);
         }
     }
 
