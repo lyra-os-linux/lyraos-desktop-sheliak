@@ -130,5 +130,13 @@
   "Could not open audio settings": "No se pudo abrir la configuración de audio",
   "Could not open Bluetooth settings": "No se pudo abrir la configuración de Bluetooth",
   "Could not open energy settings": "No se pudo abrir la configuración de energía",
-  "Could not open the screenshot tool": "No se pudo abrir la herramienta de captura de pantalla"
+  "Could not open the screenshot tool": "No se pudo abrir la herramienta de captura de pantalla",
+  "Search applications…": "Buscar aplicaciones…",
+  "Search applications": "Buscar aplicaciones",
+  "Pinned": "Ancladas",
+  "All applications": "Todas las aplicaciones",
+  "Power": "Energía",
+  "Lock": "Bloquear",
+  "Back": "Atrás",
+  "Search results": "Resultados de búsqueda"
 }

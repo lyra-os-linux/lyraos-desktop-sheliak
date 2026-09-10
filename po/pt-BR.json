@@ -50,7 +50,7 @@
   "Right": "Direita",
   "Alignment": "Alinhamento",
   "Position of favorites and open applications along the dock": "Posição dos favoritos e apps abertos ao longo do dock",
-  "Start": "Início",
+  "Start": "Iniciar",
   "Center": "Centro",
   "End": "Fim",
   "Open Applications Position": "Posição dos apps abertos",
@@ -130,5 +130,13 @@
   "Could not open audio settings": "Não foi possível abrir as configurações de áudio",
   "Could not open Bluetooth settings": "Não foi possível abrir as configurações de Bluetooth",
   "Could not open energy settings": "Não foi possível abrir as configurações de energia",
-  "Could not open the screenshot tool": "Não foi possível abrir a ferramenta de captura de tela"
+  "Could not open the screenshot tool": "Não foi possível abrir a ferramenta de captura de tela",
+  "Search applications…": "Buscar aplicativos…",
+  "Search applications": "Buscar aplicativos",
+  "Pinned": "Fixados",
+  "All applications": "Todos os aplicativos",
+  "Power": "Energia",
+  "Lock": "Bloquear",
+  "Back": "Voltar",
+  "Search results": "Resultados da busca"
 }

@@ -6,6 +6,34 @@
   padding: 0;
 }
 
+/* The native panel becomes the Windows taskbar, keeping its clock/indicators. */
+#panel.sheliak-windows-panel { border-radius: 0; margin: 0; padding: 0; }
+#panel.sheliak-windows-panel .panel-button { -natural-hpadding: 10px; -minimum-hpadding: 6px; }
+#dash.sheliak-dock.windows-taskbar .dash-background { padding: 0 6px; spacing: 2px; border: 0; box-shadow: none; }
+#dash.sheliak-dock.windows-taskbar .sheliak-apps { spacing: 2px; }
+#dash.sheliak-dock.windows-taskbar .overview-icon { padding: 5px 8px; border-radius: 4px; }
+#dash.sheliak-dock.windows10 .overview-icon { border-radius: 0; }
+#dash.sheliak-dock.windows-taskbar .sheliak-indicator-row { margin-top: 2px; height: 3px; }
+#dash.sheliak-dock.windows-taskbar .app-grid-running-dot { width: 16px; height: 3px; border-radius: 2px; }
+#dash.sheliak-dock.windows10 .app-grid-running-dot { width: 28px; border-radius: 0; }
+.sheliak-start-menu { -arrow-rise: 8px; }
+.sheliak-start-menu.windows10 .popup-menu-content { border-radius: 0; }
+.sheliak-start-menu.windows11 .popup-menu-content { border-radius: 12px; }
+.sheliak-start-content { spacing: 16px; padding: 12px; }
+.sheliak-start-search { min-height: 28px; }
+.sheliak-start-headings { spacing: 16px; font-weight: bold; }
+.sheliak-start-body { spacing: 20px; }
+.sheliak-start-heading { margin-bottom: 8px; font-weight: bold; }
+.sheliak-start-results { spacing: 2px; }
+.sheliak-start-app { padding: 6px; border-radius: 5px; }
+.sheliak-start-app-content { spacing: 8px; }
+.sheliak-start-app:hover, .sheliak-start-app:focus,
+.sheliak-start-tile:hover, .sheliak-start-tile:focus { background-color: st-transparentize(-st-accent-color, 0.8); }
+.sheliak-start-tile { width: 82px; height: 82px; padding: 4px; margin: 3px; border-radius: 6px; }
+.windows10 .sheliak-start-tile { background-color: st-transparentize(-st-accent-color, 0.65); border-radius: 0; }
+.sheliak-start-tile .sheliak-start-app-content { spacing: 8px; }
+.sheliak-start-footer { padding-top: 12px; spacing: 12px; border-top: 1px solid rgba(128,128,128,0.25); }
+
 #dash.sheliak-dock .dash-background {
   margin: 0;
   spacing: 6px;

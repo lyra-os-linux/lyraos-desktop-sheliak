@@ -7,6 +7,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {SignalTracker} from './signals.js';
 import {panelRightBox} from './shellCompat.js';
+import {windowsProfile} from './desktopProfile.js';
 
 const SHELIAK_PANEL_INDICATOR = 'sheliak-panel-indicator';
 const FLOATING_PANEL_CLASS = 'sheliak-panel-floating';
@@ -64,6 +65,10 @@ export class TopBarManager {
 
         this._signals.connect(this._settings, 'changed::panel-height',
             () => this._syncHeight());
+        this._signals.connect(this._settings, 'changed::desktop-profile', () => {
+            this._syncHeight();
+            this._syncFloating();
+        });
         this._signals.connect(this._settings, 'changed::show-clock',
             () => this._syncClock());
         this._signals.connect(this._settings, 'changed::show-panel-indicators',
@@ -147,6 +152,12 @@ export class TopBarManager {
     }
 
     private _syncHeight(): void {
+        const profile = windowsProfile(this._settings);
+        if (profile) {
+            this._ownedHeight = profile === 'windows10' ? 48 : 52;
+            Main.panel.set_height(this._ownedHeight);
+            return;
+        }
         this._ownedHeight = Math.max(24, Math.min(64,
             this._settings.get_uint('panel-height')));
         Main.panel.set_height(this._ownedHeight);
@@ -166,7 +177,7 @@ export class TopBarManager {
      * vez de qualquer sobreposição de retângulo.
      */
     private _syncFloating(): void {
-        const floating = this._settings.get_boolean('floating-panel');
+        const floating = !windowsProfile(this._settings) && this._settings.get_boolean('floating-panel');
         if (!floating) {
             this._resetFloating();
             return;

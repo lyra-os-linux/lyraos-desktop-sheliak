@@ -5,7 +5,7 @@ import {build} from 'esbuild';
 
 const {outputFiles} = await build({entryPoints:['src/dock.ts'], bundle:true, write:false,
     format:'iife', globalName:'DockModule', plugins:[{name:'layout-fixture', setup(builder) {
-        builder.onResolve({filter:/^(gi|resource):\/\/|^\.\//}, args => args.kind==='entry-point'||args.path==='./dockAlignment.js'?null:({path:args.path,namespace:'fixture'}));
+        builder.onResolve({filter:/^(gi|resource):\/\/|^\.\//}, args => args.kind==='entry-point'||['./dockAlignment.js','./desktopProfile.js'].includes(args.path)?null:({path:args.path,namespace:'fixture'}));
         builder.onLoad({filter:/.*/,namespace:'fixture'}, args => ({contents:
             args.path.endsWith('/main.js') ? 'export const {panel, layoutManager} = fixtures;' :
                 'export default {}; export const AppIcon={}, DockMagnifier={}, LauncherEntryTracker={}, '+

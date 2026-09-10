@@ -10,6 +10,7 @@ import {PanelMenus} from './panelMenus.js';
 import {PanelMenuTheme} from './panelMenuTheme.js';
 import {PanelSurfaceTheme} from './panelSurfaceTheme.js';
 import {TopBarManager} from './topBar.js';
+import {WindowsPanel} from './windowsPanel.js';
 import {shellIsStartingUp, UnsupportedShellFeature} from './shellCompat.js';
 
 type PanelActor = {
@@ -25,6 +26,7 @@ export default class SheliakExtension extends Extension {
     private _panelMenuTheme: PanelMenuTheme | null = null;
     private _panelSurfaceTheme: PanelSurfaceTheme | null = null;
     private _topBar: TopBarManager | null = null;
+    private _windowsPanel: WindowsPanel | null = null;
     private _settings: Gio.Settings | null = null;
     private _hideWorkspaceButtonSignal = 0;
     private _startupCompleteSignal = 0;
@@ -64,6 +66,7 @@ export default class SheliakExtension extends Extension {
             this._hideWorkspaceButtonSignal = this._settings.connect(
                 'changed::hide-workspace-button', () => this._syncWorkspaceButton());
             this._syncWorkspaceButton();
+            this._windowsPanel = new WindowsPanel(this._settings, this._dock);
             console.debug('Sheliak: dock criado e habilitado');
         } catch (error) {
             console.error(`Sheliak: falha na ativação; revertendo alterações: ${error}`);
@@ -78,6 +81,8 @@ export default class SheliakExtension extends Extension {
     }
 
     private _teardown(): void {
+        this._destroyComponent('painel Windows', this._windowsPanel);
+        this._windowsPanel = null;
         this._restoreDesktopStartup();
         if (this._dashWasVisible !== null) {
             if (this._dashWasVisible)

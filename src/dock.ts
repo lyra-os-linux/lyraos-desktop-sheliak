@@ -12,6 +12,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {AppIcon} from './appIcon.js';
 import {alignmentKey} from './dockAlignment.js';
+import {windowsProfile} from './desktopProfile.js';
 import {DockMagnifier} from './dockMagnifier.js';
 import {LauncherEntryTracker} from './launcherEntries.js';
 import {ShowAppsButton} from './showAppsButton.js';
@@ -56,6 +57,50 @@ export class Dock {
     private _favoriteLaterId = 0;
     private _trackedWindows = new Map<Meta.Window, number[]>();
     private _destroyed = false;
+    private _panelScroll: St.ScrollView | null = null;
+    private _panelMaxWidth = 10000;
+
+    get launcher(): St.Button { return this._showApps.actor; }
+
+    setLauncherAction(action: (() => void) | null): void { this._showApps.setAction(action); }
+
+    limitPanelWidth(width: number): void {
+        if (this._panelMaxWidth === width) return;
+        this._panelMaxWidth = width;
+        if (this._panelScroll) this._relayout();
+    }
+
+    setPanelHost(host: St.BoxLayout | null): void {
+        if (this._chromeAdded) {
+            Main.layoutManager.removeChrome(this.actor);
+            Main.layoutManager.removeChrome(this._revealTrigger);
+            this._chromeAdded = false;
+        }
+        if (this._panelScroll) {
+            this._panelScroll.set_child(null);
+            this._panelScroll.destroy();
+            this._panelScroll = null;
+        }
+        if (host) {
+            this.actor.get_parent()?.remove_child(this.actor);
+            this._panelScroll = new St.ScrollView({overlay_scrollbars: true,
+                style_class: 'sheliak-taskbar-scroll'});
+            this._panelScroll.set_policy(St.PolicyType.EXTERNAL, St.PolicyType.NEVER);
+            this._panelScroll.set_child(this.actor);
+            host.add_child(this._panelScroll);
+            this._background.set_child_at_index(this._showApps.actor, 0);
+            this._revealTrigger.hide();
+            this._hidden = false;
+        } else {
+            this._background.set_child_at_index(this._showApps.actor, this._background.get_children().length - 1);
+            this._revealTrigger.show();
+            for (const style of ['windows-taskbar', 'windows10', 'windows11'])
+                this.actor.remove_style_class_name(style);
+            this._syncChrome();
+        }
+        this._syncPanelColors();
+        this._relayout();
+    }
 
     constructor(settings?: Gio.Settings, extensionPath?: string) {
         console.debug('Sheliak: construindo dock');
@@ -110,7 +155,7 @@ export class Dock {
             () => this._settings.get_string('position') as DockSide);
         this._magnifier = new DockMagnifier(this.actor,
             () => ['top', 'bottom'].includes(this._settings.get_string('position')),
-            () => this._settings.get_boolean('animation') && this._openMenuCount === 0);
+            () => !windowsProfile(this._settings) && this._settings.get_boolean('animation') && this._openMenuCount === 0);
         this._launcherEntries = new LauncherEntryTracker(
             (desktopId, count) => this._onLauncherEntryChanged(desktopId, count));
 
@@ -187,7 +232,7 @@ export class Dock {
         for (const key of ['position', 'icon-size', 'edge-margin', 'animation',
             'extend-to-edges', 'content-alignment', 'extended-content-alignment', 'hide-mode', 'hide-delay',
             'show-running', 'running-apps-position', 'show-trash',
-            'show-apps-button', 'fullscreen-hide']) {
+            'show-apps-button', 'fullscreen-hide', 'desktop-profile']) {
             this._signals.connect(this._settings, `changed::${key}`,
                 () => {
                     console.debug(`Sheliak: configuração alterada: ${key}`);
@@ -215,7 +260,7 @@ export class Dock {
         // Preserve the theme's alpha as well as its colors, including panel
         // state changes. Only the dock surface receives these overrides.
         const style = `background-color: rgba(${background.red}, ${background.green}, ` +
-            `${background.blue}, ${background.alpha / 255}); ` +
+            `${background.blue}, ${this._panelScroll ? 0 : background.alpha / 255}); ` +
             `color: rgba(${foreground.red}, ${foreground.green}, ` +
             `${foreground.blue}, ${foreground.alpha / 255});`;
         if (this._background.get_style() !== style)
@@ -580,6 +625,22 @@ export class Dock {
         if (!monitor)
             return;
 
+        if (this._panelScroll) {
+            const profile = windowsProfile(this._settings) ?? 'windows11';
+            for (const style of ['vertical', 'windows10', 'windows11']) this.actor.remove_style_class_name(style);
+            for (const style of ['horizontal', 'squared', 'windows-taskbar', profile])
+                this.actor.add_style_class_name(style);
+            this.actor.orientation = this._background.orientation = this._appsBox.orientation = Clutter.Orientation.HORIZONTAL;
+            for (const actor of [this._leadingSpacer, this._trailingSpacer, this._separator, this._trash.actor]) actor.hide();
+            this._showApps.actor.show();
+            this._showApps.zoomActor.icon_size = profile === 'windows10' ? 32 : 28;
+            const [width] = this._naturalDockSize(true);
+            this.actor.set_position(0, 0);
+            this.actor.set_size(width, Main.panel.height);
+            this._panelScroll.set_size(Math.min(width, this._panelMaxWidth), Main.panel.height);
+            return;
+        }
+
         const position = this._settings.get_string('position');
         const extend = this._settings.get_boolean('extend-to-edges');
         const alignment = this._settings.get_string(alignmentKey(this._settings));
@@ -662,6 +723,7 @@ export class Dock {
     }
 
     private _syncChrome(): void {
+        if (this._panelScroll) return;
         if (this._chromeAdded) {
             Main.layoutManager.removeChrome(this.actor);
             Main.layoutManager.removeChrome(this._revealTrigger);

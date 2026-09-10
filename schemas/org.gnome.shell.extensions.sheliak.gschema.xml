@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.sheliak" path="/org/gnome/shell/extensions/sheliak/">
-    <key name="desktop-profile" type="s"><default>'lyra'</default><summary>Explicit Vega desktop profile: lyra or ubuntu; independent from dock geometry</summary></key>
+    <key name="desktop-profile" type="s"><default>'lyra'</default><summary>Explicit Vega desktop profile: lyra, ubuntu, windows10 or windows11</summary></key>
+    <key name="desktop-profile-settings" type="s"><default>''</default><summary>Saved preferences for each Vega desktop profile</summary></key>
     <key name="lyra-profile-settings" type="s"><default>''</default><summary>Saved Lyra layout and menu preferences while the Ubuntu profile is active</summary></key>
     <key name="position" type="s"><default>'left'</default><summary>Dock position</summary></key>
     <key name="hide-mode" type="s"><default>'intelligent'</default><summary>Dock visibility mode: intelligent, autohide, or always visible</summary></key>

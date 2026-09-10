@@ -77,6 +77,7 @@ function fixture(mapped) {
     const settings = new Signals();
     const values = {'panel-height': 32, 'panel-margin': 7, 'floating-panel': true, 'extend-to-edges': false};
     settings.get_uint = key => values[key];
+    settings.get_string = key => values[key];
     settings.get_boolean = key => values[key] ?? true;
     settings.change = (key, value) => {
         values[key] = value;
@@ -181,6 +182,23 @@ test('extended dock keeps panel flush without windows and restores floating pref
     assert.deepEqual(margins(panel), [0, 0, 0, 0]);
     window.maximized = 0;
     window.emit('notify::maximized-vertically');
+    assert.deepEqual(margins(panel), [15, 15, 15, 15]);
+    manager.destroy();
+});
+
+test('Windows panel height and flush edges restore the saved Lyra geometry', () => {
+    const {panel, settings, manager} = fixture(true);
+    const originalHeight = panel.height;
+    settings.change('desktop-profile', 'windows10');
+    assert.equal(panel.height, 48);
+    assert.deepEqual(margins(panel), [0, 0, 0, 0]);
+    settings.change('desktop-profile', 'windows11');
+    assert.equal(panel.height, 52);
+    settings.change('panel-margin', 15);
+    panel.applyTheme();
+    assert.deepEqual(margins(panel), [0, 0, 0, 0]);
+    settings.change('desktop-profile', 'lyra');
+    assert.equal(panel.height, originalHeight);
     assert.deepEqual(margins(panel), [15, 15, 15, 15]);
     manager.destroy();
 });

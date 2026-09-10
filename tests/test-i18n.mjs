@@ -33,6 +33,19 @@ for (const [lang, expected] of cases) {
     assert.equal(actual, expected, `LANG=${lang}`);
 }
 
+// Exercise the new Start menu catalog, including entries absent from older RPMs.
+const menuKeys = ['Start', 'Search applications…', 'Pinned', 'All applications',
+    'Settings', 'Power', 'Lock', 'Back', 'Search results', 'No applications found'];
+for (const locale of ['en-US', 'pt-BR', 'es-ES']) {
+    const catalog = JSON.parse(readFileSync(`po/${locale}.json`, 'utf8'));
+    const env = {...process.env, LANG: `${locale.replace('-', '_')}.UTF-8`,
+        TEXTDOMAIN: 'sheliak', TEXTDOMAINDIR: resolve('dist/locale')};
+    for (const key of ['LC_ALL', 'LC_MESSAGES', 'LANGUAGE']) delete env[key];
+    for (const key of menuKeys)
+        assert.equal(execFileSync('gettext', [key], {encoding: 'utf8', env}),
+            catalog[key] ?? key, `${locale}: ${key}`);
+}
+
 const precedenceCases = [
     [{LANG: 'es_ES.UTF-8', LC_MESSAGES: 'pt_BR.UTF-8'}, 'Aplicativos'],
     [{LANG: 'es_ES.UTF-8', LC_MESSAGES: 'pt_BR.UTF-8', LC_ALL: 'en_US.UTF-8'}, 'Applications'],

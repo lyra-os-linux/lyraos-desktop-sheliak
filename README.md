@@ -162,6 +162,26 @@ As preferências Lyra anteriores ficam em `lyra-profile-settings` para restaura�
 ao voltar. Estender o dock por si só não seleciona Ubuntu nem esconde menus ou
 busca; essas alterações pertencem à seleção do perfil no Vega 5.1.31 ou posterior.
 
+### Perfis Windows 10 e Windows 11
+
+A partir de 1.13.0, os perfis explícitos `windows10` e `windows11` levam o painel
+nativo ao rodapé do monitor principal. O dock passa a integrar esse painel,
+com aplicativos à esquerda no Windows 10 ou centralizados no Windows 11. O
+espaço do painel fica reservado para as janelas e os indicadores de execução
+usam o formato de barra de tarefas, sem ampliação dos ícones ao passar o mouse.
+
+O botão L e a tecla Super abrem um menu próprio: lista e blocos de favoritos no
+Windows 10, pesquisa e grade de fixados no Windows 11. Ambos permitem listar,
+buscar e abrir aplicativos, acessar configurações, bloquear e desligar com a
+confirmação nativa. Os ícones mantêm a identidade dos aplicativos instalados.
+
+Relógio, calendário, notificações e indicadores são os componentes nativos do
+GNOME, reposicionados no painel inferior. Seus menus abrem para cima. Ao sair
+do perfil, os componentes, as teclas e a posição do painel são restaurados. O
+Vega 5.1.32 guarda as preferências de cada perfil em `desktop-profile-settings`,
+incluindo migração das preferências Lyra salvas pela versão com perfil Ubuntu.
+O empacotamento continua RPM; não há dependência de outro dock ou menu externo.
+
 O GNOME Shell 48 não expõe uma API pública estável de desfoque do conteúdo
 atrás de um ator de extensão. A v1 usa transparência e sombra nativas; não usa
 `Shell.BlurEffect`, pois esse efeito desfocaria o próprio dock.

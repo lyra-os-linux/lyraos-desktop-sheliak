@@ -13,6 +13,7 @@ export class ShowAppsButton {
     // structurally incompatible with the top-level Gio.Icon type here.
     private readonly _darkIcon: never | null;
     private readonly _lightIcon: never | null;
+    private _action: (() => void) | null = null;
 
     constructor(iconPath: string | null, lightIconPath: string | null) {
         this._darkIcon = iconPath ? Gio.icon_new_for_string(iconPath) as never : null;
@@ -28,8 +29,13 @@ export class ShowAppsButton {
             track_hover: true,
             accessible_name: _('Show Applications'),
         });
-        this.actor.connect('clicked', () => Main.overview.showApps());
+        this.actor.connect('clicked', () => this._action ? this._action() : Main.overview.showApps());
         this.actor.connect('style-changed', () => this._syncTheme());
+    }
+
+    setAction(action: (() => void) | null): void {
+        this._action = action;
+        this.actor.accessible_name = action ? _('Start') : _('Show Applications');
     }
 
     private _syncTheme(): void {
