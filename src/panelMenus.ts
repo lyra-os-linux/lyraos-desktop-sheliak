@@ -663,6 +663,9 @@ class SearchIndicator {
     private _searchCancellable: Gio.Cancellable | null = null;
     private _searchGeneration = 0;
     private _destroyed = false;
+    private _compact = false;
+    private _compactIcon: St.Icon;
+    private _entryBox: St.BoxLayout;
 
     constructor() {
         this.button = new PanelMenu.Button(0.5, _('Search'), true);
@@ -689,6 +692,8 @@ class SearchIndicator {
         });
         this._entry.set_secondary_icon(this._clearIcon);
         this.button.add_child(this._entry);
+        this._compactIcon = new St.Icon({icon_name: 'edit-find-symbolic',
+            style_class: 'system-status-icon', y_align: Clutter.ActorAlign.CENTER});
 
         // Sem grab modal: o campo faz parte do botão do painel, e um grab
         // restringiria os eventos de teclado ao popup de resultados,
@@ -698,16 +703,38 @@ class SearchIndicator {
         // nunca alinha bordas — setSourceAlignment(0.0) muda a referência
         // para a borda esquerda da origem, fazendo o popup nascer alinhado
         // ao início do campo de busca, independentemente da largura do
-        // resultado.
-        this._resultsMenu = new PopupMenu.PopupMenu(this._entry, 0.0, St.Side.TOP);
+        // resultado. A origem é o botão, que permanece no painel mesmo quando
+        // o campo é movido para dentro do popup no modo compacto.
+        this._resultsMenu = new PopupMenu.PopupMenu(this.button, 0.0, St.Side.TOP);
         this._resultsMenu.setSourceAlignment(0.0);
         this._resultsMenu.actor.add_style_class_name('sheliak-panel-menu');
         this._resultsMenu.actor.add_style_class_name('sheliak-search-results');
         Main.uiGroup.add_child(this._resultsMenu.actor);
         this._resultsMenu.actor.hide();
+        // Not a menu item: rebuilding results must not destroy the focused entry.
+        this._entryBox = new St.BoxLayout({style_class: 'sheliak-search-popup-entry', visible: false});
+        this._resultsMenu.box.add_child(this._entryBox);
+        this._signals.connect(this.button, 'captured-event',
+            (_actor: unknown, event: Clutter.Event) => {
+                if (this._compact && (event.type() === Clutter.EventType.TOUCH_BEGIN ||
+                    (event.type() === Clutter.EventType.BUTTON_PRESS && event.get_button() === Clutter.BUTTON_PRIMARY))) {
+                    this._openCompact();
+                    return Clutter.EVENT_STOP;
+                }
+                if (event.type() !== Clutter.EventType.KEY_PRESS)
+                    return Clutter.EVENT_PROPAGATE;
+                if (global.stage.get_key_focus() !== this.button)
+                    return Clutter.EVENT_PROPAGATE;
+                if (![Clutter.KEY_Return, Clutter.KEY_KP_Enter, Clutter.KEY_space,
+                    Clutter.KEY_Down].includes(event.get_key_symbol()))
+                    return Clutter.EVENT_PROPAGATE;
+                if (this._compact) this._openCompact();
+                else this._entry.grab_key_focus();
+                return Clutter.EVENT_STOP;
+            });
 
         this._signals.connect(this._entry, 'secondary-icon-clicked', () => {
-            this._clearSearch();
+            this._entry.set_text('');
             this._entry.grab_key_focus();
         });
 
@@ -726,6 +753,9 @@ class SearchIndicator {
         this._searchCancellable = null;
         this._signals.destroy();
         this._disconnectStageClick();
+        // Either actor can be outside the button tree after a mode switch.
+        this._compactIcon.destroy();
+        this._entry.destroy();
         this._resultsMenu.destroy();
         this.button.destroy();
         try {
@@ -735,10 +765,46 @@ class SearchIndicator {
         }
     }
 
-    private _clearSearch(): void {
+    expandedWidth(): number {
+        const padding = this.button.get_theme_node().get_length('-natural-hpadding') * 2;
+        return this._entry.get_preferred_width(-1)[1] + padding;
+    }
+
+    setCompact(compact: boolean): void {
+        if (compact === this._compact) return;
+        const focus = global.stage.get_key_focus();
+        const focused = !!focus && (this.button.contains(focus) || this._entry.contains(focus));
         this._resultsMenu.close();
+        this._compact = compact;
+        this._entry.get_parent()?.remove_child(this._entry);
+        this._compactIcon.get_parent()?.remove_child(this._compactIcon);
+        if (compact) {
+            this.button.add_child(this._compactIcon);
+            this._entryBox.add_child(this._entry);
+        } else {
+            this.button.add_child(this._entry);
+        }
+        this._entryBox.visible = compact;
+        if (focused) {
+            if (compact) this._openCompact();
+            else this._entry.grab_key_focus();
+        }
+        if (this._entry.get_text()) this._updateResults();
+    }
+
+    private _openCompact(): void {
+        this._resultsMenu.open();
+        this._connectStageClick();
+        this._entry.grab_key_focus();
+    }
+
+    private _clearSearch(): void {
+        const focus = global.stage.get_key_focus();
+        const restoreFocus = this._compact && !!focus && this._resultsMenu.actor.contains(focus);
         this._entry.set_text('');
+        this._resultsMenu.close();
         this._disconnectStageClick();
+        if (restoreFocus) this.button.grab_key_focus();
     }
 
     private _connectStageClick(): void {
@@ -768,6 +834,7 @@ class SearchIndicator {
         const symbol = event.get_key_symbol();
         if (symbol === Clutter.KEY_Escape) {
             this._clearSearch();
+            if (this._compact) this.button.grab_key_focus();
             return Clutter.EVENT_STOP;
         }
         if (symbol === Clutter.KEY_Return || symbol === Clutter.KEY_KP_Enter) {
@@ -788,10 +855,12 @@ class SearchIndicator {
         this._clearIcon.visible = this._entry.get_text().length > 0;
 
         if (!query) {
-            this._resultsMenu.close();
             this._resultsMenu.removeAll();
             this._topResult = null;
-            this._disconnectStageClick();
+            if (!this._compact) {
+                this._resultsMenu.close();
+                this._disconnectStageClick();
+            }
             return;
         }
 
@@ -972,6 +1041,8 @@ export class PanelMenus {
     private _system: SystemIndicator | null = null;
     private _search: SearchIndicator | null = null;
     private _extensionPath?: string;
+    private _layoutId = 0;
+    private _compact = false;
 
     constructor(settings: Gio.Settings, extensionPath?: string) {
         this._settings = settings;
@@ -983,15 +1054,29 @@ export class PanelMenus {
                 () => this._recreate());
         }
         this._recreate();
+        const panel = Main.panel as unknown as St.Widget & {
+            _leftBox: St.BoxLayout; _centerBox: St.BoxLayout; _rightBox: St.BoxLayout;
+        };
+        for (const actor of [panel, panel._leftBox, panel._centerBox, panel._rightBox]) {
+            this._signals.connect(actor, 'notify::allocation', () => this._queueLayout());
+            this._signals.connect(actor, 'style-changed', () => this._queueLayout());
+        }
+        this._signals.connect(panel, 'queue-relayout', () => this._queueLayout());
+        this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._queueLayout());
+        this._signals.connect(global.display, 'workareas-changed', () => this._queueLayout());
+        this._signals.connect(St.ThemeContext.get_for_stage(global.stage), 'changed', () => this._queueLayout());
     }
 
     destroy(): void {
         this._signals.destroy();
+        if (this._layoutId) GLib.source_remove(this._layoutId);
+        this._layoutId = 0;
         this._destroyIndicators();
     }
 
     private _recreate(): void {
         this._destroyIndicators();
+        this._compact = false;
 
         const configuredBox = this._settings.get_string('panel-menu-position');
         const box = ['left', 'center', 'right'].includes(configuredBox)
@@ -1018,7 +1103,67 @@ export class PanelMenus {
             this._search = new SearchIndicator();
             Main.panel.addToStatusArea(
                 'sheliak-search', this._search.button, position, box);
+            // Search manages its nonmodal popup and focus itself. The native
+            // dummy menu otherwise grabs the button and excludes the entry.
+            Main.panel.menuManager.removeMenu(this._search.button.menu as PopupMenu.PopupMenu);
         }
+        this._queueLayout();
+    }
+
+    private _queueLayout(): void {
+        if (this._layoutId) return;
+        this._layoutId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._layoutId = 0;
+            this._syncLayout();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    private _syncLayout(): void {
+        const panel = Main.panel as unknown as St.Widget & {
+            _leftBox: St.BoxLayout; _centerBox: St.BoxLayout; _rightBox: St.BoxLayout;
+        };
+        if (!panel.mapped || panel.width <= 0) return;
+        const buttons = [this._applications?.button, this._places?.button, this._system?.button]
+            .filter((button): button is PanelMenu.Button => !!button);
+        const own = [...buttons, ...(this._search ? [this._search.button] : [])];
+        if (!own.length) return;
+        const box = own[0].container.get_parent() as St.BoxLayout;
+        if (!box) return;
+        // Measure the labels even when hidden. Never expand actors to probe a
+        // size: doing so in allocation callbacks would trigger a relayout loop.
+        let expanded = 0;
+        for (const button of buttons) {
+            const content = button.get_first_child() as St.BoxLayout;
+            const children = content.get_children();
+            expanded += children.reduce((sum, child) => sum + child.get_preferred_width(-1)[1], 0)
+                + content.get_theme_node().get_length('spacing') * Math.max(0, children.length - 1)
+                + button.get_theme_node().get_length('-natural-hpadding') * 2;
+        }
+        expanded += this._search?.expandedWidth() ?? 0;
+        const otherWidth = (parent: St.BoxLayout) => parent.get_children()
+            .filter(child => child.visible && !own.some(button => button.container === child))
+            .reduce((sum, child) => sum + child.get_preferred_width(-1)[1], 0);
+        let capacity: number;
+        if (box === panel._centerBox) {
+            capacity = panel.width - 2 * Math.max(otherWidth(panel._leftBox), otherWidth(panel._rightBox));
+        } else {
+            const centerWidth = panel._centerBox.get_preferred_width(-1)[1];
+            const monitor = Main.layoutManager.findMonitorForActor(panel);
+            const area = monitor ? Main.layoutManager.getWorkAreaForMonitor(monitor.index) : null;
+            const offset = monitor && area ? 2 * (area.x - monitor.x) + area.width - monitor.width : 0;
+            capacity = Math.floor((panel.width - centerWidth + offset) / 2);
+        }
+        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        // A little breathing room also prevents threshold flicker on rounding.
+        const compact = expanded + otherWidth(box) + (this._compact ? 16 : 8) * scale > capacity;
+        if (compact === this._compact) return;
+        this._compact = compact;
+        for (const button of buttons) {
+            for (const child of button.get_first_child()!.get_children())
+                if (child instanceof St.Label) child.visible = !compact;
+        }
+        this._search?.setCompact(compact);
     }
 
     private _destroyIndicators(): void {

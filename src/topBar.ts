@@ -131,12 +131,16 @@ export class TopBarManager {
     }
 
     private _trackNativeIndicator(actor: Clutter.Actor): void {
-        if (actor instanceof St.Widget && actor.has_style_class_name(SHELIAK_PANEL_INDICATOR))
+        if (this._isOwnIndicator(actor))
             return;
         const indicator = actor as VisibleActor;
         if (this._nativeIndicators.has(indicator))
             return;
         this._nativeIndicators.set(indicator, indicator.visible);
+        this._signals.connect(indicator, 'destroy', () => {
+            this._nativeIndicators.delete(indicator);
+            this._signals.forget(indicator);
+        });
         // Alguns indicadores são inseridos ocultos e exibidos somente depois
         // de obterem estado (rede, bateria, acessibilidade etc.). Se a opção
         // estiver desligada, interceptamos essa exibição e lembramos que o
@@ -273,6 +277,7 @@ export class TopBarManager {
     }
 
     private _syncIndicator(actor: VisibleActor): void {
+        if (this._isOwnIndicator(actor)) return;
         if (this._shouldShowNativeIndicator(actor)) {
             if (this._nativeIndicators.get(actor) && actor.get_parent())
                 actor.show();
@@ -283,5 +288,11 @@ export class TopBarManager {
 
     private _shouldShowNativeIndicator(_actor: VisibleActor): boolean {
         return this._settings.get_boolean('show-panel-indicators');
+    }
+
+    private _isOwnIndicator(actor: Clutter.Actor): boolean {
+        // addToStatusArea inserts a St.Bin around the marked panel button.
+        return [actor, actor.get_first_child()].some(child =>
+            child instanceof St.Widget && child.has_style_class_name(SHELIAK_PANEL_INDICATOR));
     }
 }

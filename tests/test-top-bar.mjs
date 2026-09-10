@@ -202,3 +202,38 @@ test('Windows panel height and flush edges restore the saved Lyra geometry', () 
     assert.deepEqual(margins(panel), [15, 15, 15, 15]);
     manager.destroy();
 });
+
+test('right-side menu wrappers are excluded from native indicator visibility', () => {
+    const {manager, settings} = fixture(true);
+    const button = Object.assign(new Signals(), {
+        has_style_class_name: name => name === 'sheliak-panel-indicator',
+    });
+    const wrapper = Object.assign(new Signals(), {
+        get_first_child: () => button,
+        has_style_class_name: () => false,
+        hide() { assert.fail('Sheliak menu must not follow native indicator visibility'); },
+    });
+    manager._trackNativeIndicator(wrapper);
+    settings.change('show-panel-indicators', false);
+    manager._syncIndicator(wrapper);
+    assert.equal(wrapper.callbacks.size, 0);
+    manager.destroy();
+});
+
+test('destroyed native indicators are not accessed during preference changes or disable', () => {
+    const {manager, settings} = fixture(true);
+    const indicator = Object.assign(new Signals(), {
+        visible: true,
+        get_first_child: () => null,
+        has_style_class_name: () => false,
+        get_parent() { assert.fail('Disposed actor accessed'); },
+        show() { assert.fail('Disposed actor shown'); },
+        hide() { assert.fail('Disposed actor hidden'); },
+    });
+    manager._trackNativeIndicator(indicator);
+    indicator.emit('destroy');
+    indicator.callbacks.clear(); // GObject disconnects signals on destruction.
+    indicator.disconnect = () => assert.fail('Disposed signal source accessed');
+    settings.change('show-panel-indicators', false);
+    manager.destroy();
+});
