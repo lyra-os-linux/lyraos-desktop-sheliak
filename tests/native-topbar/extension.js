@@ -5,6 +5,7 @@ import Shell from 'gi://Shell';
 import St from 'gi://St';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 const wait = ms => new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms,
     () => { resolve(); return GLib.SOURCE_REMOVE; }));
@@ -31,11 +32,11 @@ export default class TopbarTest extends Extension {
             monitor: Main.layoutManager.primaryMonitor,
         }, null, 2));
     }
-    async key(symbol) {
+    async key(symbol, delay = 180) {
         this.keyboard.notify_keyval(GLib.get_monotonic_time(), symbol, Clutter.KeyState.PRESSED);
         await wait(30);
         this.keyboard.notify_keyval(GLib.get_monotonic_time(), symbol, Clutter.KeyState.RELEASED);
-        await wait(180);
+        await wait(delay);
     }
     async capture(name) {
         const screenshot = new Shell.Screenshot();
@@ -88,7 +89,7 @@ export default class TopbarTest extends Extension {
         await this.key(Clutter.KEY_Return);
         this.check('Enter focuses search', search._entry.contains(global.stage.get_key_focus()),
             {focus: String(global.stage.get_key_focus()), mapped: search._entry.mapped, open: search._resultsMenu.isOpen});
-        for (const character of 'Lyra Topbar Probe') await this.key(character.charCodeAt(0));
+        for (const character of 'Lyra Topbar Probe') await this.key(character.charCodeAt(0), 25);
         await wait(300);
         this.check('search finds installed app', search._topResult?.name === 'Lyra Topbar Probe');
         await this.capture('search');
@@ -145,8 +146,19 @@ export default class TopbarTest extends Extension {
             for (const key of ['show-applications-menu', 'show-places-menu', 'show-system-menu', 'show-search-menu'])
                 this.ext._settings.set_boolean(key, profile === 'lyra');
             this.ext._settings.set_string('desktop-profile', profile);
+            this.ext._settings.set_boolean('extend-to-edges', profile === 'ubuntu');
             await wait(450);
             this.sample(profile+' profile allocation');
+            if (profile === 'windows10') {
+                const temporary = new PanelMenu.Button(0.5, 'Temporary status menu');
+                temporary.add_child(new St.Icon({icon_name: 'dialog-information-symbolic'}));
+                Main.panel.addToStatusArea('topbar-test-temporary', temporary);
+                this.ext._windowsPanel._syncMenus();
+                const arrow = temporary.menu._boxPointer;
+                this.check('Windows tracks temporary menu orientation', this.ext._windowsPanel._arrows.has(arrow));
+                temporary.destroy();
+                this.check('Windows forgets destroyed menu orientation', !this.ext._windowsPanel._arrows.has(arrow));
+            }
         }
         const menus = this.ext._panelMenus;
         this.ext.disable();

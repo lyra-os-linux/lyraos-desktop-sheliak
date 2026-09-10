@@ -16,6 +16,8 @@ Layout work is coalesced in one idle source, removed on disable. Measurements do
 not temporarily expand actors and therefore do not continually invalidate their
 own preferred sizes. Recreated right-side menu wrappers are excluded from native
 indicator visibility management, and destroyed native indicators are forgotten.
+Windows menu orientation tracking also forgets destroyed popups before restoring
+the preceding layout.
 
 ## Native regression
 
@@ -26,13 +28,17 @@ python3 tests/native-topbar/run.py --width 800 --output /tmp/sheliak-topbar-chec
 python3 tests/native-topbar/matrix.py --output /tmp/sheliak-topbar-matrix
 ```
 
-The harness starts one disposable headless Wayland compositor at a time with
+By default the harness starts one disposable headless Wayland compositor at a time with
 software rendering, private D-Bus and temporary XDG directories. It never changes
 the running desktop's settings. The matrix covers logical widths 800, 1024, 1280
 and 1920, integer scales 1 and 2, and en_US, pt_BR and es_ES. It also exercises
 125% text size, left/center/right placement, profile transitions, and narrow/wide
 resizing while searching. A real desktop entry writes a marker in the temporary
 directory to verify launching. Virtual input verifies typing and menu activation.
+The optional `--jobs 2` matrix flag permits two independent compositors, each
+with two software-rendering threads. Native IBus warnings after compositor
+shutdown are recorded separately; extension stacks and runtime warnings fail
+the matrix.
 
 Each run records actual painted-content geometry, assertions, shell logs, and
 screenshots (`left.png`, `search.png`). The old merged source 8ee8233 reproduces
