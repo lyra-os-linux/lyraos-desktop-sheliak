@@ -686,7 +686,7 @@ class SearchIndicator {
         // room for GNOME's centered clock and right indicators on narrow
         // outputs instead of allowing the search entry to overlap them.
         this._signals.connect(Main.panel, 'notify::width', () => this._syncWidth());
-        this._signals.connect(global.display, 'monitors-changed', () => this._syncWidth());
+        this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._syncWidth());
         this._syncWidth();
 
         // O “x” só aparece quando há texto; St.Entry não gerencia a
