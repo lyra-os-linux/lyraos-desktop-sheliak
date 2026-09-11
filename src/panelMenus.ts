@@ -410,7 +410,6 @@ class PlacesIndicator {
 
         const personal = this._personalPlaces(seen);
         if (personal.length > 0) {
-            menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(_('Personal')));
             for (const place of personal)
                 menu.addMenuItem(this._placeItem(place));
         }
