@@ -8,6 +8,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 import type {FavoritesList, WindowsFavorites} from './profileFavorites.js';
+import type {TileSizeAction} from './tileSizes.js';
+import type {TileSize} from './tileLayout.js';
 
 // PopupMenu normally consumes Enter/Space on its source to open itself. For
 // application buttons those keys must reach St.Button and activate the app.
@@ -39,7 +41,7 @@ export class AppContextMenu {
     private _favorites: FavoritesList;
 
     constructor(source: St.Widget, app: Shell.App, private _pins?: WindowsFavorites,
-        private _surface: 'panel' | 'menu' = 'panel') {
+        private _surface: 'panel' | 'menu' = 'panel', private _tileSize?: TileSizeAction) {
         this._app = app;
         this._favorites = _pins?.panel ?? AppFavorites.getAppFavorites();
         this.menu = new AppPopupMenu(source, () => this.toggle());
@@ -82,6 +84,20 @@ export class AppContextMenu {
         }
 
         const windows = this._windows();
+        if (this._tileSize) {
+            const resize = new PopupMenu.PopupSubMenuMenuItem(_('Resize'));
+            const sizes: Array<[TileSize, string]> = [
+                ['small', _('Small')], ['medium', _('Medium')],
+                ['wide', _('Wide')], ['large', _('Large')],
+            ];
+            for (const [size, label] of sizes) {
+                const item = new PopupMenu.PopupMenuItem(label);
+                item.setOrnament(this._tileSize.current() === size ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+                item.connect('activate', () => this._save(() => this._tileSize?.change(size)));
+                resize.menu.addMenuItem(item);
+            }
+            this.menu.addMenuItem(resize);
+        }
         if (windows.length > 1) {
             this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
             for (const window of windows) {

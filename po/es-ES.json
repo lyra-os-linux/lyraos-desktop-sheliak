@@ -146,5 +146,10 @@
   "Move Earlier": "Mover antes",
   "Move Later": "Mover después",
   "Could not save application preferences": "No se pudieron guardar las preferencias de las aplicaciones",
-  "No pinned applications": "Ninguna aplicación anclada"
+  "No pinned applications": "Ninguna aplicación anclada",
+  "Resize": "Cambiar tamaño",
+  "Small": "Pequeño",
+  "Medium": "Mediano",
+  "Wide": "Ancho",
+  "Large": "Grande"
 }

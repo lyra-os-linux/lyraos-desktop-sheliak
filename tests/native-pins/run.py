@@ -13,6 +13,7 @@ import time
 HERE = Path(__file__).resolve().parent
 parser = argparse.ArgumentParser()
 parser.add_argument('--dist', type=Path, default=HERE.parents[1] / 'dist')
+parser.add_argument('--probe', type=Path, default=HERE / 'extension.js')
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--width', type=int, default=1440)
 parser.add_argument('--scale', type=int, choices=[1, 2], default=1)
@@ -45,7 +46,7 @@ if not args.inside_private_bus:
         probe.mkdir(parents=True)
         (probe / 'metadata.json').write_text(json.dumps({'uuid': uuid, 'name': 'Pins regression',
             'description': 'Disposable native test', 'shell-version': ['48']}))
-        shutil.copy2(HERE / 'extension.js', probe / 'extension.js')
+        shutil.copy2(args.probe.resolve(), probe / 'extension.js')
         production = extensions / 'sheliak@lyraos.com.br'
         shutil.copytree(args.dist.resolve(), production)
         apps = root / 'data/applications'
