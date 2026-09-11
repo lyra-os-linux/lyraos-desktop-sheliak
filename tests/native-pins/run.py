@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--dist', type=Path, default=HERE.parents[1] / 'dist')
 parser.add_argument('--probe', type=Path, default=HERE / 'extension.js')
 parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--desktop-icons', type=Path, help='Optional packaged DING extension for private desktop integration tests')
 parser.add_argument('--width', type=int, default=1440)
 parser.add_argument('--scale', type=int, choices=[1, 2], default=1)
 parser.add_argument('--language', choices=['en_US', 'pt_BR', 'es_ES'], default='en_US')
@@ -49,6 +50,21 @@ if not args.inside_private_bus:
         shutil.copy2(args.probe.resolve(), probe / 'extension.js')
         production = extensions / 'sheliak@lyraos.com.br'
         shutil.copytree(args.dist.resolve(), production)
+        if args.desktop_icons:
+            home = root / 'home'
+            home.mkdir()
+            env['HOME'] = str(home)
+            for name in ['Desktop', 'Downloads', 'Documents', 'Templates']:
+                (home / name).mkdir()
+            (root / 'config/user-dirs.dirs').write_text(''.join(
+                f'XDG_{name.upper()}_DIR="{home / name}"\n'
+                for name in ['Desktop', 'Downloads', 'Documents', 'Templates']))
+            (home / 'Desktop/Fixture.txt').write_text('Private desktop fixture\n')
+            (home / 'Downloads/Dragged.txt').write_text('Private drag and drop fixture\n')
+            ding = extensions / 'ding@rastersoft.com'
+            shutil.copytree(args.desktop_icons.resolve(), ding)
+            env['GSETTINGS_SCHEMA_DIR'] = str(ding / 'schemas')
+            env['DING_PRIVATE_NATIVE_TEST'] = '1'
         apps = root / 'data/applications'
         apps.mkdir()
         for app_id in ['vega.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop',
@@ -66,7 +82,7 @@ if not args.inside_private_bus:
                             'org.gnome.shell.extensions.sheliak', key, value], env=env, check=True)
         subprocess.run(['gsettings', 'set', 'org.gnome.desktop.interface', 'scaling-factor', str(args.scale)], env=env, check=True)
         subprocess.run(['gsettings', 'set', 'org.gnome.shell', 'enabled-extensions',
-                        "['sheliak@lyraos.com.br', '"+uuid+"']"], env=env, check=True)
+                        "['sheliak@lyraos.com.br', '"+uuid+"'" + (", 'ding@rastersoft.com'" if args.desktop_icons else "") + "]"], env=env, check=True)
         result.write_text(json.dumps({'status': 'pending'}))
         with (output / 'bus.log').open('w') as log:
             process = subprocess.Popen(['dbus-run-session', '--', sys.executable, str(Path(__file__).resolve()),

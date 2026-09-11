@@ -220,3 +220,18 @@ atrás de um ator de extensão. A v1 usa transparência e sombra nativas; não u
 ## Licença
 
 GPL-3.0-or-later.
+
+### MacOS X and desktop icons
+
+Sheliak 1.16.0 advertises `macos-profile-supported` for Vega GTK 5.1.34. The
+`macos` profile displays only the Lyra application logo at the left of the top
+bar. Vega owns the dock preset, profile snapshots and restoration. Windows and
+Lyra menus keep their existing labels and behavior.
+
+Desktop icons use the separately packaged upstream Desktop Icons NG extension
+(`ding@rastersoft.com`). Vega controls that extension independently of the profile.
+To test the packaged DING payload without touching personal files, run
+`tests/native-pins/run.py --desktop-icons PATH --probe tests/native-desktop-icons/extension.js --output PATH`.
+`VEGA_DESKTOP_TEST_BINARY` must point to Vega's Cargo test executable. The runner
+creates a private HOME and Desktop, validates enable/disable in a private GNOME
+Shell, and exercises Vega's real GTK switch callbacks and profile persistence.
