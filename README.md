@@ -175,6 +175,27 @@ Windows 10, pesquisa e grade de fixados no Windows 11. Ambos permitem listar,
 buscar e abrir aplicativos, acessar configurações, bloquear e desligar com a
 confirmação nativa. Os ícones mantêm a identidade dos aplicativos instalados.
 
+A partir de 1.14.0, os aplicativos fixados no painel e os favoritos dos cards
+do Iniciar são listas independentes, também separadas entre Windows 10 e 11.
+O painel começa com Vega, Arquivos e Firefox. Os cards recebem uma cópia dos
+favoritos atuais do GNOME na primeira ativação de cada perfil. Depois disso,
+alterar qualquer uma das quatro listas não modifica as demais nem os favoritos
+do GNOME usados por Lyra, Ubuntu e GNOME Vanilla.
+
+O botão direito ou Menu/Shift+F10 em um aplicativo oferece ações separadas
+para fixar/desafixar no painel e no Iniciar. Os aplicativos do painel podem ser
+reordenados arrastando ou pelas ações Mover para antes/depois; estas ações também
+ordenam os cards quando usadas no menu. É possível remover todos os itens de
+uma lista: ela continua vazia ao trocar de perfil ou reiniciar. Aplicativos
+abertos continuam aparecendo no painel conforme a preferência de execução.
+As quatro listas persistem nas chaves `windows10-panel-apps`,
+`windows11-panel-apps`, `windows10-menu-apps` e `windows11-menu-apps` do Sheliak.
+
+Teste nativo em compositor GNOME 48 isolado (não acessa a sessão pessoal):
+`python3 tests/native-pins/run.py --output /tmp/sheliak-pins-test --language pt_BR`.
+O teste cobre menus por mouse/teclado, arrastar, migração, listas vazias,
+independência dos perfis e reativação da extensão; aceita também en_US/es_ES.
+
 Relógio, calendário, notificações e indicadores são os componentes nativos do
 GNOME, reposicionados no painel inferior. Seus menus abrem para cima. Ao sair
 do perfil, os componentes, as teclas e a posição do painel são restaurados. O

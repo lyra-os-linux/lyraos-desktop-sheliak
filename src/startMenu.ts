@@ -4,14 +4,16 @@ import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 
-import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as SystemActions from 'resource:///org/gnome/shell/misc/systemActions.js';
+import {ensureActorVisibleInScrollView} from 'resource:///org/gnome/shell/misc/animationUtils.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {SignalTracker} from './signals.js';
 import type {WindowsProfile} from './desktopProfile.js';
+import {windowsFavorites, type WindowsFavorites} from './profileFavorites.js';
+import {AppContextMenu} from './contextMenu.js';
 
 /** Native application launcher, with separate Windows 10/11 compositions. */
 export class StartMenu {
@@ -19,10 +21,15 @@ export class StartMenu {
     readonly entry: St.Entry;
     private _signals = new SignalTracker();
     private _appSystem = Shell.AppSystem.get_default();
-    private _favorites = AppFavorites.getAppFavorites();
+    private _favorites: WindowsFavorites;
+    private _contextMenus: AppContextMenu[] = [];
+    private _contextManager: PopupMenu.PopupMenuManager;
+    private _renderId = 0;
     private _allApps: Shell.App[] = [];
     private _results: St.BoxLayout;
+    private _resultsScroll: St.ScrollView;
     private _pinned: St.Widget;
+    private _pinnedScroll: St.ScrollView;
     private _allHeading: St.Label;
     private _pinnedHeading: St.Label;
     private _allToggle: St.Button;
@@ -32,8 +39,9 @@ export class StartMenu {
     private _content: St.BoxLayout;
     private _allColumn: St.BoxLayout;
 
-    constructor(button: St.Button, anchor: St.Widget, profile: WindowsProfile) {
+    constructor(button: St.Button, anchor: St.Widget, profile: WindowsProfile, settings: Gio.Settings) {
         this._profile = profile;
+        this._favorites = windowsFavorites(settings, profile);
         this.menu = new PopupMenu.PopupMenu(profile === 'windows11' ? anchor : button,
             profile === 'windows11' ? 0.5 : 0, St.Side.BOTTOM);
         if (profile === 'windows10') this.menu.setSourceAlignment(0);
@@ -43,6 +51,7 @@ export class StartMenu {
         this.menu.actor.hide();
         const manager = new PopupMenu.PopupMenuManager(button);
         manager.addMenu(this.menu);
+        this._contextManager = new PopupMenu.PopupMenuManager(button);
         const item = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
         // This is a container of independently interactive controls, not a
         // disabled application row. Do not inherit the insensitive row color.
@@ -85,6 +94,7 @@ export class StartMenu {
             x_expand: true, style_class: 'sheliak-start-results'});
         const scroll = new St.ScrollView({x_expand: true, y_expand: true,
             style_class: 'sheliak-start-scroll', overlay_scrollbars: true});
+        this._resultsScroll = scroll;
         scroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
         scroll.set_child(this._results);
         allColumn.add_child(scroll);
@@ -92,7 +102,15 @@ export class StartMenu {
         this._pinned = new St.Widget({layout_manager: new Clutter.GridLayout(),
             x_expand: true, y_align: Clutter.ActorAlign.START,
             style_class: 'sheliak-start-pinned'});
-        body.add_child(this._pinned);
+        // Favorites can exceed the initial number of cards. Keep every pin reachable.
+        const pinnedBox = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true});
+        pinnedBox.add_child(this._pinned);
+        const pinnedScroll = new St.ScrollView({x_expand: true, y_expand: true,
+            style_class: 'sheliak-start-scroll', overlay_scrollbars: true});
+        this._pinnedScroll = pinnedScroll;
+        pinnedScroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
+        pinnedScroll.set_child(pinnedBox);
+        body.add_child(pinnedScroll);
         this._signals.connect(this.menu, 'open-state-changed', (_menu, open: boolean) => {
             if (open) {
                 this._allVisible = false;
@@ -104,6 +122,8 @@ export class StartMenu {
                     this._content.set_height(Math.min(570, monitor.height - 140));
                 }
                 this.entry.grab_key_focus();
+            } else {
+                for (const context of this._contextMenus) context.close();
             }
         });
         this._signals.connect(this.entry.clutter_text, 'text-changed', () => this._render());
@@ -120,18 +140,26 @@ export class StartMenu {
             return Clutter.EVENT_PROPAGATE;
         });
         this._signals.connect(this._appSystem, 'installed-changed', () => this._reload());
-        this._signals.connect(this._favorites, 'changed', () => this._reload());
+        this._signals.connect(settings, `changed::${profile}-menu-apps`, () => {
+            // Finish the popup action before replacing its source actor.
+            if (this._renderId) return;
+            this._renderId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._renderId = 0;
+                this._render();
+                return GLib.SOURCE_REMOVE;
+            });
+        });
 
         const footer = new St.BoxLayout({style_class: 'sheliak-start-footer'});
         const user = new St.Label({text: GLib.get_real_name() || GLib.get_user_name(),
             x_expand: true, y_align: Clutter.ActorAlign.CENTER});
         footer.add_child(user);
-        const settings = this._actionButton(_('Settings'), 'preferences-system-symbolic', () => {
-            const app = this._appSystem.lookup_app('org.lyraos.Vega.desktop')
+        const settingsButton = this._actionButton(_('Settings'), 'preferences-system-symbolic', () => {
+            const app = this._appSystem.lookup_app('vega.desktop')
                 ?? this._appSystem.lookup_app('org.gnome.Settings.desktop');
             if (app) this._launch(app);
         });
-        footer.add_child(settings);
+        footer.add_child(settingsButton);
         const power = this._actionButton(_('Power'), 'system-shutdown-symbolic', () => {
             this.menu.close();
             (SystemActions.getDefault() as unknown as {activateAction(id: string): void}).activateAction('power-off');
@@ -149,7 +177,10 @@ export class StartMenu {
     toggle(): void { this.menu.toggle(); }
 
     destroy(): void {
+        if (this._renderId) GLib.source_remove(this._renderId);
+        this._renderId = 0;
         this._signals.destroy();
+        for (const context of this._contextMenus.splice(0)) context.destroy();
         this.menu.destroy();
     }
 
@@ -188,11 +219,25 @@ export class StartMenu {
             can_focus: true, track_hover: true, x_expand: !pinned,
             style_class: pinned ? 'sheliak-start-tile' : 'sheliak-start-app'});
         button.connect('clicked', () => this._launch(app));
+        button.connect('key-focus-in', () => {
+            ensureActorVisibleInScrollView(pinned ? this._pinnedScroll : this._resultsScroll, button);
+        });
+        const context = new AppContextMenu(button, app, this._favorites, 'menu');
+        this._contextMenus.push(context);
+        this._contextManager.addMenu(context.menu);
+        // A separate manager gives the context popup its own nested modal
+        // grab. Closing it returns input to Start without closing its parent.
+        button.connect('button-release-event', (_actor, event: Clutter.Event) => {
+            if (event.get_button() !== Clutter.BUTTON_SECONDARY) return Clutter.EVENT_PROPAGATE;
+            context.toggle();
+            return Clutter.EVENT_STOP;
+        });
         return button;
     }
 
     private _render(): void {
         const query = this.entry.get_text().trim().toLocaleLowerCase();
+        for (const context of this._contextMenus.splice(0)) context.destroy();
         this._results.destroy_all_children();
         this._pinned.destroy_all_children();
         this._firstResult = null;
@@ -200,6 +245,7 @@ export class StartMenu {
         this._allColumn.visible = showAll;
         this._allHeading.visible = showAll;
         this._pinned.visible = !query && (this._profile === 'windows10' || !this._allVisible);
+        this._pinnedScroll.visible = this._pinned.visible;
         this._allToggle.visible = this._profile === 'windows11' && !query;
         this._allToggle.label = this._allVisible ? _('Back') : _('All applications');
         this._pinnedHeading.text = query ? _('Search results') : this._allVisible ? _('All applications')
@@ -216,13 +262,14 @@ export class StartMenu {
         if (this._pinned.visible) {
             const grid = this._pinned.layout_manager as Clutter.GridLayout;
             const columns = this._profile === 'windows10' ? 3 : 6;
-            const favorites = this._favorites.getFavorites();
-            const apps = favorites.length ? favorites : this._allApps.slice(0, 12);
-            apps.slice(0, this._profile === 'windows10' ? 12 : 18).forEach((app, index) => {
+            const apps = this._favorites.menu.getFavorites();
+            apps.forEach((app, index) => {
                 const button = this._appButton(app, true);
                 this._firstResult ??= button;
                 grid.attach(button, index % columns, Math.floor(index / columns), 1, 1);
             });
+            if (!apps.length)
+                grid.attach(new St.Label({text: _('No pinned applications')}), 0, 0, columns, 1);
         }
     }
 

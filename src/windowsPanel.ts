@@ -89,7 +89,7 @@ export class WindowsPanel {
             this._panel._rightBox.add_child(this._clock);
         }
         this._dock.setPanelHost(this._panel._centerBox);
-        this._start = new StartMenu(this._dock.launcher, this._panel._centerBox, profile);
+        this._start = new StartMenu(this._dock.launcher, this._panel._centerBox, profile, this._settings);
         this._dock.setLauncherAction(() => this._start?.toggle());
         // Meta and GObject typings carry separately versioned GObject packages.
         this._overlayOriginal = Number(GObject.signal_handler_find(global.display as never, {signalId: 'overlay-key'} as never));
