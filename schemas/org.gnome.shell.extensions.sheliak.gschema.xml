@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.sheliak" path="/org/gnome/shell/extensions/sheliak/">
+    <key name="windows10-panel-apps" type="as"><default>['vega.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']</default><summary>Ordered Windows 10 taskbar pins</summary></key>
+    <key name="windows11-panel-apps" type="as"><default>['vega.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']</default><summary>Ordered Windows 11 taskbar pins</summary></key>
+    <key name="windows10-menu-apps" type="as"><default>[]</default><summary>Windows 10 Start favorites, initialized once from GNOME favorites</summary></key>
+    <key name="windows11-menu-apps" type="as"><default>[]</default><summary>Windows 11 Start favorites, initialized once from GNOME favorites</summary></key>
     <key name="desktop-profile" type="s"><default>'lyra'</default><summary>Explicit Vega desktop profile: lyra, ubuntu, windows10 or windows11</summary></key>
     <key name="desktop-profile-settings" type="s"><default>''</default><summary>Saved preferences for each Vega desktop profile</summary></key>
     <key name="lyra-profile-settings" type="s"><default>''</default><summary>Saved Lyra layout and menu preferences while the Ubuntu profile is active</summary></key>

@@ -138,5 +138,13 @@
   "Lock": "Bloquear",
   "Back": "Atrás",
   "Search results": "Resultados de búsqueda",
-  "Activate": "Activar"
+  "Activate": "Activar",
+  "Pin to Taskbar": "Anclar a la barra de tareas",
+  "Unpin from Taskbar": "Desanclar de la barra de tareas",
+  "Pin to Start": "Anclar a Inicio",
+  "Unpin from Start": "Desanclar de Inicio",
+  "Move Earlier": "Mover antes",
+  "Move Later": "Mover después",
+  "Could not save application preferences": "No se pudieron guardar las preferencias de las aplicaciones",
+  "No pinned applications": "Ninguna aplicación anclada"
 }

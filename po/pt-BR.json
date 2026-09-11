@@ -138,5 +138,13 @@
   "Lock": "Bloquear",
   "Back": "Voltar",
   "Search results": "Resultados da busca",
-  "Activate": "Ativar"
+  "Activate": "Ativar",
+  "Pin to Taskbar": "Fixar no painel",
+  "Unpin from Taskbar": "Desafixar do painel",
+  "Pin to Start": "Fixar no Iniciar",
+  "Unpin from Start": "Desafixar do Iniciar",
+  "Move Earlier": "Mover para antes",
+  "Move Later": "Mover para depois",
+  "Could not save application preferences": "Não foi possível salvar as preferências dos aplicativos",
+  "No pinned applications": "Nenhum aplicativo fixado"
 }

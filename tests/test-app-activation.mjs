@@ -9,7 +9,7 @@ async function module(entry, fixtures) {
             builder.onResolve({filter: /^(gi|resource):\/\//}, args => ({path: args.path, namespace: 'shell'}));
             builder.onLoad({filter: /.*/, namespace: 'shell'}, args => ({contents:
                 args.path.startsWith('gi://') ? `export default fixtures[${JSON.stringify(args.path.slice(5))}];` :
-                    'export const {uiGroup, activateWindow, getAppFavorites, PopupMenu, PopupSeparatorMenuItem, gettext} = fixtures;'}));
+                    'export const {uiGroup, activateWindow, notifyError, getAppFavorites, PopupMenu, PopupSeparatorMenuItem, gettext} = fixtures;'}));
         }}]});
     return runInNewContext(`${outputFiles[0].text}\nModule`, {fixtures});
 }

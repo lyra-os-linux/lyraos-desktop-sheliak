@@ -13,6 +13,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {AppIcon} from './appIcon.js';
 import {alignmentKey} from './dockAlignment.js';
 import {windowsProfile} from './desktopProfile.js';
+import {windowsFavorites, type FavoritesList, type WindowsFavorites} from './profileFavorites.js';
 import {DockMagnifier} from './dockMagnifier.js';
 import {LauncherEntryTracker} from './launcherEntries.js';
 import {ShowAppsButton} from './showAppsButton.js';
@@ -33,6 +34,7 @@ export class Dock {
     private _trailingSpacer: St.Widget;
     private _appSystem = Shell.AppSystem.get_default();
     private _favorites = AppFavorites.getAppFavorites();
+    private _windowsFavorites: WindowsFavorites | undefined;
     private _icons: AppIcon[] = [];
     private _menuManager: PopupMenu.PopupMenuManager;
     private _signals = new SignalTracker();
@@ -205,6 +207,10 @@ export class Dock {
             () => this._updateIconGeometries());
 
         this._signals.connect(this._favorites, 'changed', () => this._redisplay());
+        for (const profile of ['windows10', 'windows11'])
+            this._signals.connect(this._settings, `changed::${profile}-panel-apps`, () => {
+                if (windowsProfile(this._settings) === profile) this._queueRedisplay();
+            });
         this._signals.connect(this._appSystem, 'app-state-changed',
             () => this._queueRedisplay());
         this._signals.connect(this._appSystem, 'installed-changed', () => {
@@ -309,11 +315,14 @@ export class Dock {
     }
 
     private _redisplay(): void {
+        this._clearDragPlaceholder();
         this._magnifier.setIcons([]);
         for (const icon of this._icons.splice(0))
             icon.destroy();
 
-        const favorites = this._favorites.getFavorites();
+        const profile = windowsProfile(this._settings);
+        this._windowsFavorites = profile ? windowsFavorites(this._settings, profile) : undefined;
+        const favorites = this._panelFavorites().getFavorites();
         const favoriteIds = new Set(favorites.map(app => app.get_id()));
         const running = this._settings.get_boolean('show-running')
             ? this._appSystem.get_running().filter(app => !favoriteIds.has(app.get_id()))
@@ -329,7 +338,7 @@ export class Dock {
                 open => this._onMenuStateChanged(open),
                 this._settings.get_uint('icon-size'),
                 () => this._clearDragPlaceholder(),
-                this._tooltip);
+                this._tooltip, this._windowsFavorites);
             icon.setBadge(this._launcherEntries.countFor(icon.appId));
             this._icons.push(icon);
             this._appsBox.add_child(icon.actor);
@@ -338,6 +347,10 @@ export class Dock {
         console.debug(`Sheliak: redisplay concluído (${favorites.length} favoritos, ${running.length} em execução)`);
 
         this._relayout();
+    }
+
+    private _panelFavorites(): FavoritesList {
+        return this._windowsFavorites?.panel ?? this._favorites;
     }
 
     private _queueRedisplay(): void {
@@ -394,7 +407,7 @@ export class Dock {
     // _appsBox delegate while an AppIcon is being dragged over the dock.
     handleDragOver(source: unknown, _actor: Clutter.Actor, x: number, y: number, _time: number): DND.DragMotionResult {
         const app = (source as {app?: Shell.App} | null)?.app;
-        if (!app || !this._favorites.isFavorite(app.get_id()))
+        if (!app || !this._panelFavorites().isFavorite(app.get_id()))
             return DND.DragMotionResult.NO_DROP;
 
         const {start, count} = this._favoritesBounds();
@@ -419,7 +432,7 @@ export class Dock {
         if (pos !== this._dragPlaceholderPos) {
             this._dragPlaceholderPos = pos;
 
-            const favorites = this._favorites.getFavorites();
+            const favorites = this._panelFavorites().getFavorites();
             const favPos = favorites.findIndex(favorite => favorite.get_id() === app.get_id());
             if (favPos !== -1 && (pos === favPos || pos === favPos + 1)) {
                 this._clearDragPlaceholder();
@@ -443,7 +456,7 @@ export class Dock {
     // DND drop-target interface: commits the reorder chosen during handleDragOver.
     acceptDrop(source: unknown): boolean {
         const app = (source as {app?: Shell.App} | null)?.app;
-        if (!app || !this._favorites.isFavorite(app.get_id()))
+        if (!app || !this._panelFavorites().isFavorite(app.get_id()))
             return false;
 
         if (!this._dragPlaceholder) {
@@ -452,7 +465,10 @@ export class Dock {
         }
 
         const id = app.get_id();
-        const pos = this._dragPlaceholderPos;
+        const favorites = this._panelFavorites();
+        const profile = windowsProfile(this._settings);
+        const oldPosition = favorites.getFavorites().findIndex(item => item.get_id() === id);
+        const pos = this._dragPlaceholderPos - (profile && oldPosition < this._dragPlaceholderPos ? 1 : 0);
         this._clearDragPlaceholder();
 
         const laters = global.compositor.get_laters();
@@ -460,8 +476,10 @@ export class Dock {
             laters.remove(this._favoriteLaterId);
         this._favoriteLaterId = laters.add(Meta.LaterType.BEFORE_REDRAW, () => {
             this._favoriteLaterId = 0;
-            if (!this._destroyed)
-                this._favorites.moveFavoriteToPos(id, pos);
+            // Bind a pending drag to its original profile; switching profiles
+            // before the next frame must not reorder either destination list.
+            if (!this._destroyed && windowsProfile(this._settings) === profile)
+                favorites.moveFavoriteToPos(id, pos);
             return GLib.SOURCE_REMOVE;
         });
 

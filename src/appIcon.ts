@@ -11,6 +11,7 @@ import {AppContextMenu} from './contextMenu.js';
 import {AppButton} from './appAccessible.js';
 import {SignalTracker} from './signals.js';
 import {TooltipManager} from './tooltip.js';
+import type {WindowsFavorites} from './profileFavorites.js';
 
 const DEFAULT_ICON_SIZE = 40;
 
@@ -42,6 +43,7 @@ export class AppIcon {
         iconSize = DEFAULT_ICON_SIZE,
         onDragEnd?: () => void,
         tooltip?: TooltipManager,
+        windows?: WindowsFavorites,
     ) {
         this.app = app;
         this.favorite = favorite;
@@ -97,7 +99,7 @@ export class AppIcon {
         content.add_child(indicatorRow);
         this.actor.set_child(content);
 
-        this.menu = new AppContextMenu(this.actor, app);
+        this.menu = new AppContextMenu(this.actor, app, windows);
         menuManager.addMenu(this.menu.menu);
         if (onMenuStateChanged) {
             this._signals.connect(this.menu.menu, 'open-state-changed',

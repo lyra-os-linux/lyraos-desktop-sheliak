@@ -8,7 +8,7 @@ const {outputFiles} = await build({entryPoints:['src/dock.ts'], bundle:true, wri
         builder.onResolve({filter:/^(gi|resource):\/\/|^\.\//}, args => args.kind==='entry-point'||['./dockAlignment.js','./desktopProfile.js'].includes(args.path)?null:({path:args.path,namespace:'fixture'}));
         builder.onLoad({filter:/.*/,namespace:'fixture'}, args => ({contents:
             args.path.endsWith('/main.js') ? 'export const {panel, layoutManager, ctrlAltTabManager} = fixtures;' :
-                'export default {}; export const AppIcon={}, DockMagnifier={}, LauncherEntryTracker={}, '+
+                'export default {}; export const windowsFavorites={}, AppIcon={}, DockMagnifier={}, LauncherEntryTracker={}, '+
                 'ShowAppsButton={}, SignalTracker={}, shellIsStartingUp={}, TooltipManager={}, TrashIcon={}, getAppFavorites={}, PopupMenuManager={}, DragMotionResult={};'}));
     }}]});
 
