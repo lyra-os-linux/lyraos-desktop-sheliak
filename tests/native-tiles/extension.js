@@ -115,6 +115,11 @@ export default class TilesTest extends Extension {
             overlap ||= a.x < b.x+b.width-1 && b.x < a.x+a.width-1 && a.y < b.y+b.height-1 && b.y < a.y+a.height-1;
         }
         this.check('mixed tile sizes do not overlap', !overlap, boxes);
+        const viewport = rect(this.start()._pinnedScroll);
+        this.check('mixed cards fit horizontally inside their scroll area', boxes.every(box =>
+            box.x >= viewport.x && box.x + box.width <= viewport.x + viewport.width + 1), {viewport, boxes});
+        const allColumn = rect(this.start()._allColumn);
+        this.check('application list retains usable width at this scale', allColumn.width >= 180 * St.ThemeContext.get_for_stage(global.stage).scale_factor, allColumn);
         await this.capture('windows10-mixed');
         const saved = this.settings.get_value('windows10-tile-sizes').deep_unpack();
         this.check('resizing keeps favorites and their order', same(this.settings.get_strv('windows10-menu-apps'), ids));

@@ -128,8 +128,11 @@ export class StartMenu {
                 this._reload();
                 const monitor = Main.layoutManager.primaryMonitor;
                 if (monitor) {
-                    this._content.set_width(Math.min(profile === 'windows10' ? 680 : 620, monitor.width - 40));
-                    this._content.set_height(Math.min(570, monitor.height - 140));
+                    // CSS dimensions scale with the theme; explicit actor sizes
+                    // use stage pixels and must follow the same factor.
+                    const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+                    this._content.set_width(Math.min((profile === 'windows10' ? 680 : 620) * scale, monitor.width - 40 * scale));
+                    this._content.set_height(Math.min(570 * scale, monitor.height - 140 * scale));
                 }
                 this.entry.grab_key_focus();
             } else {
