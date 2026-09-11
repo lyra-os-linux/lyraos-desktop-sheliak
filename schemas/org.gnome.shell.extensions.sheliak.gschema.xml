@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.sheliak" path="/org/gnome/shell/extensions/sheliak/">
+    <key name="windows10-tile-sizes" type="a{ss}"><default>{}</default><summary>Windows 10 Start card size by application: small, medium, wide or large</summary></key>
     <key name="windows10-panel-apps" type="as"><default>['vega.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']</default><summary>Ordered Windows 10 taskbar pins</summary></key>
     <key name="windows11-panel-apps" type="as"><default>['vega.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']</default><summary>Ordered Windows 11 taskbar pins</summary></key>
     <key name="windows10-menu-apps" type="as"><default>[]</default><summary>Windows 10 Start favorites, initialized once from GNOME favorites</summary></key>

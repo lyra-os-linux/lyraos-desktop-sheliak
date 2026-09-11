@@ -31,6 +31,10 @@
 .sheliak-start-tile:hover, .sheliak-start-tile:focus { background-color: st-transparentize(-st-accent-color, 0.8); }
 .sheliak-start-tile { width: 82px; height: 82px; padding: 4px; margin: 3px; border-radius: 6px; }
 .windows10 .sheliak-start-tile { background-color: st-transparentize(-st-accent-color, 0.65); border-radius: 0; }
+.windows10 .sheliak-start-tile.tile-small { width: 34px; height: 34px; }
+.windows10 .sheliak-start-tile.tile-medium { width: 82px; height: 82px; }
+.windows10 .sheliak-start-tile.tile-wide { width: 178px; height: 82px; }
+.windows10 .sheliak-start-tile.tile-large { width: 178px; height: 178px; }
 .sheliak-start-tile .sheliak-start-app-content { spacing: 8px; }
 .sheliak-start-footer { padding-top: 12px; spacing: 12px; border-top: 1px solid rgba(128,128,128,0.25); }
 

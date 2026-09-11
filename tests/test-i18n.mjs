@@ -37,7 +37,7 @@ for (const [lang, expected] of cases) {
 const menuKeys = ['Start', 'Search applications…', 'Pinned', 'All applications',
     'Settings', 'Power', 'Lock', 'Back', 'Search results', 'No applications found', 'Activate', 'Pin to Taskbar', 'Unpin from Taskbar',
     'Pin to Start', 'Unpin from Start', 'Move Earlier', 'Move Later',
-    'Could not save application preferences', 'No pinned applications'];
+    'Could not save application preferences', 'No pinned applications', 'Resize', 'Small', 'Medium', 'Wide', 'Large'];
 for (const locale of ['en-US', 'pt-BR', 'es-ES']) {
     const catalog = JSON.parse(readFileSync(`po/${locale}.json`, 'utf8'));
     const env = {...process.env, LANG: `${locale.replace('-', '_')}.UTF-8`,

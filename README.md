@@ -196,6 +196,16 @@ Teste nativo em compositor GNOME 48 isolado (não acessa a sessão pessoal):
 O teste cobre menus por mouse/teclado, arrastar, migração, listas vazias,
 independência dos perfis e reativação da extensão; aceita também en_US/es_ES.
 
+No Windows 10, a versão 1.15.0 permite escolher **Redimensionar → Pequeno,
+Médio, Largo ou Grande** pelo botão direito/Menu/Shift+F10 em cada card do
+Iniciar. Médio mantém o tamanho anterior; Pequeno exibe apenas o ícone, Largo
+ocupa duas larguras médias, e Grande ocupa duas larguras e duas alturas médias.
+Os blocos se reorganizam sem sobreposição e continuam acessíveis pela rolagem.
+As escolhas são salvas por aplicativo em `windows10-tile-sizes`, inclusive ao
+remover e fixar novamente um favorito. O Windows 11 mantém seu tamanho uniforme.
+Teste nativo: `python3 tests/native-pins/run.py --probe tests/native-tiles/extension.js
+--output /tmp/sheliak-tiles-test --language pt_BR`.
+
 Relógio, calendário, notificações e indicadores são os componentes nativos do
 GNOME, reposicionados no painel inferior. Seus menus abrem para cima. Ao sair
 do perfil, os componentes, as teclas e a posição do painel são restaurados. O

@@ -14,6 +14,8 @@ import {SignalTracker} from './signals.js';
 import type {WindowsProfile} from './desktopProfile.js';
 import {windowsFavorites, type WindowsFavorites} from './profileFavorites.js';
 import {AppContextMenu} from './contextMenu.js';
+import {layoutTiles, type TileSize} from './tileLayout.js';
+import {TileSizes} from './tileSizes.js';
 
 /** Native application launcher, with separate Windows 10/11 compositions. */
 export class StartMenu {
@@ -22,6 +24,7 @@ export class StartMenu {
     private _signals = new SignalTracker();
     private _appSystem = Shell.AppSystem.get_default();
     private _favorites: WindowsFavorites;
+    private _tileSizes: TileSizes;
     private _contextMenus: AppContextMenu[] = [];
     private _contextManager: PopupMenu.PopupMenuManager;
     private _renderId = 0;
@@ -42,6 +45,7 @@ export class StartMenu {
     constructor(button: St.Button, anchor: St.Widget, profile: WindowsProfile, settings: Gio.Settings) {
         this._profile = profile;
         this._favorites = windowsFavorites(settings, profile);
+        this._tileSizes = new TileSizes(settings);
         this.menu = new PopupMenu.PopupMenu(profile === 'windows11' ? anchor : button,
             profile === 'windows11' ? 0.5 : 0, St.Side.BOTTOM);
         if (profile === 'windows10') this.menu.setSourceAlignment(0);
@@ -100,8 +104,14 @@ export class StartMenu {
         allColumn.add_child(scroll);
         body.add_child(allColumn);
         this._pinned = new St.Widget({layout_manager: new Clutter.GridLayout(),
-            x_expand: true, y_align: Clutter.ActorAlign.START,
+            x_expand: profile !== 'windows10', x_align: Clutter.ActorAlign.START,
+            y_align: Clutter.ActorAlign.START,
             style_class: 'sheliak-start-pinned'});
+        if (profile === 'windows10') {
+            const grid = this._pinned.layout_manager as Clutter.GridLayout;
+            grid.set_column_homogeneous(true);
+            grid.set_row_homogeneous(true);
+        }
         // Favorites can exceed the initial number of cards. Keep every pin reachable.
         const pinnedBox = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true});
         pinnedBox.add_child(this._pinned);
@@ -118,8 +128,11 @@ export class StartMenu {
                 this._reload();
                 const monitor = Main.layoutManager.primaryMonitor;
                 if (monitor) {
-                    this._content.set_width(Math.min(profile === 'windows10' ? 680 : 620, monitor.width - 40));
-                    this._content.set_height(Math.min(570, monitor.height - 140));
+                    // CSS dimensions scale with the theme; explicit actor sizes
+                    // use stage pixels and must follow the same factor.
+                    const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+                    this._content.set_width(Math.min((profile === 'windows10' ? 680 : 620) * scale, monitor.width - 40 * scale));
+                    this._content.set_height(Math.min(570 * scale, monitor.height - 140 * scale));
                 }
                 this.entry.grab_key_focus();
             } else {
@@ -140,7 +153,7 @@ export class StartMenu {
             return Clutter.EVENT_PROPAGATE;
         });
         this._signals.connect(this._appSystem, 'installed-changed', () => this._reload());
-        this._signals.connect(settings, `changed::${profile}-menu-apps`, () => {
+        const queueRender = () => {
             // Finish the popup action before replacing its source actor.
             if (this._renderId) return;
             this._renderId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
@@ -148,7 +161,10 @@ export class StartMenu {
                 this._render();
                 return GLib.SOURCE_REMOVE;
             });
-        });
+        };
+        this._signals.connect(settings, `changed::${profile}-menu-apps`, queueRender);
+        if (profile === 'windows10')
+            this._signals.connect(settings, 'changed::windows10-tile-sizes', queueRender);
 
         const footer = new St.BoxLayout({style_class: 'sheliak-start-footer'});
         const user = new St.Label({text: GLib.get_real_name() || GLib.get_user_name(),
@@ -204,25 +220,32 @@ export class StartMenu {
             `${app.get_name()} ${app.get_id()} ${app.get_description() ?? ''}`.toLocaleLowerCase().includes(query));
     }
 
-    private _appButton(app: Shell.App, pinned: boolean): St.Button {
+    private _appButton(app: Shell.App, pinned: boolean, size: TileSize = 'medium'): St.Button {
+        const windowsTile = pinned && this._profile === 'windows10';
+        const small = windowsTile && size === 'small';
         const content = new St.BoxLayout({orientation: pinned
             ? Clutter.Orientation.VERTICAL : Clutter.Orientation.HORIZONTAL,
         x_align: pinned ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.START,
         x_expand: !pinned,
         style_class: 'sheliak-start-app-content'});
-        const icon = app.create_icon_texture(pinned ? 32 : 24);
+        const icon = app.create_icon_texture(small ? 24 : windowsTile && size === 'large' ? 48 : pinned ? 32 : 24);
         icon.x_align = pinned ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.START;
         content.add_child(icon);
-        content.add_child(new St.Label({text: app.get_name(),
-            y_align: Clutter.ActorAlign.CENTER, x_expand: true}));
+        if (!small)
+            content.add_child(new St.Label({text: app.get_name(),
+                y_align: Clutter.ActorAlign.CENTER, x_expand: true}));
         const button = new St.Button({child: content, accessible_name: app.get_name(),
             can_focus: true, track_hover: true, x_expand: !pinned,
             style_class: pinned ? 'sheliak-start-tile' : 'sheliak-start-app'});
+        if (windowsTile) button.add_style_class_name(`tile-${size}`);
         button.connect('clicked', () => this._launch(app));
         button.connect('key-focus-in', () => {
             ensureActorVisibleInScrollView(pinned ? this._pinnedScroll : this._resultsScroll, button);
         });
-        const context = new AppContextMenu(button, app, this._favorites, 'menu');
+        const context = new AppContextMenu(button, app, this._favorites, 'menu', windowsTile ? {
+            current: () => this._tileSizes.get(app.get_id()),
+            change: next => this._tileSizes.set(app.get_id(), next),
+        } : undefined);
         this._contextMenus.push(context);
         this._contextManager.addMenu(context.menu);
         // A separate manager gives the context popup its own nested modal
@@ -263,10 +286,14 @@ export class StartMenu {
             const grid = this._pinned.layout_manager as Clutter.GridLayout;
             const columns = this._profile === 'windows10' ? 3 : 6;
             const apps = this._favorites.menu.getFavorites();
+            const sizes = apps.map(app => this._tileSizes.get(app.get_id()));
+            const layout = this._profile === 'windows10' ? layoutTiles(sizes) : null;
             apps.forEach((app, index) => {
-                const button = this._appButton(app, true);
+                const button = this._appButton(app, true, sizes[index]);
                 this._firstResult ??= button;
-                grid.attach(button, index % columns, Math.floor(index / columns), 1, 1);
+                const cell = layout?.[index];
+                if (cell) grid.attach(button, cell.x, cell.y, cell.width, cell.height);
+                else grid.attach(button, index % columns, Math.floor(index / columns), 1, 1);
             });
             if (!apps.length)
                 grid.attach(new St.Label({text: _('No pinned applications')}), 0, 0, columns, 1);
