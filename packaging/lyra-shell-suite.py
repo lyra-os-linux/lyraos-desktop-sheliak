@@ -110,6 +110,19 @@ class Session:
             if os.path.exists(temporary):
                 os.unlink(temporary)
 
+    def runtime_extensions(self):
+        if not os.environ.get('DBUS_SESSION_BUS_ADDRESS'):
+            return None
+        bus = self.Gio.bus_get_sync(self.Gio.BusType.SESSION, None)
+        return bus.call_sync('org.gnome.Shell.Extensions', '/org/gnome/Shell/Extensions',
+            'org.gnome.Shell.Extensions', 'ListExtensions', None, None,
+            self.Gio.DBusCallFlags.NONE, 1000, None).unpack()[0]
+
+    def ensure_runtime_ready(self):
+        states = self.runtime_extensions()
+        if states is not None and not set(UUIDS.values()).issubset(states):
+            raise ValueError('The new Lyra extensions are not loaded yet; sign in again')
+
     def wait_legacy_disabled(self, uuids):
         for uuid in uuids:
             deadline = time.monotonic() + 5
@@ -231,6 +244,9 @@ class Session:
             return
         for role in UUIDS:
             self.installed(role)
+        # A package upgrade does not make new UUIDs discoverable in an already
+        # running Shell. Keep the old desktop active until a fresh login.
+        self.ensure_runtime_ready()
         enabled, disabled = self.lists()
         if stamp.exists():
             record = json.loads(stamp.read_text())
@@ -281,6 +297,8 @@ class Session:
         if (self.state_dir / 'transition-v1.json').exists():
             raise ValueError('Incomplete profile transition; retry the profile change')
         enabled, disabled = self.lists()
+        if not pending_ok and effective(enabled, disabled, OLD_SHELL) and not self.settings.get_string('suite-current-profile'):
+            raise ValueError('Desktop migration is pending; sign in again')
         return {'version': 1, 'profile': self.settings.get_string('suite-current-profile') or
             (self.settings.get_string('desktop-profile') if any(effective(enabled, disabled, UUIDS[r]) for r in ROLES) else 'vanilla'),
             'globally_disabled': self.shell.get_boolean('disable-user-extensions'),
@@ -296,15 +314,10 @@ class Session:
                 installed[role] = False
         # Runtime is separate from stored preferences, and may be unavailable
         # outside a running Shell. Never infer activation from an enabled UUID.
-        states = None
-        if os.environ.get('DBUS_SESSION_BUS_ADDRESS'):
-            try:
-                bus = self.Gio.bus_get_sync(self.Gio.BusType.SESSION, None)
-                states = bus.call_sync('org.gnome.Shell.Extensions', '/org/gnome/Shell/Extensions',
-                    'org.gnome.Shell.Extensions', 'ListExtensions', None, None,
-                    self.Gio.DBusCallFlags.NONE, 500, None).unpack()[0]
-            except self.GLib.Error:
-                pass
+        try:
+            states = self.runtime_extensions()
+        except self.GLib.Error:
+            states = None
         return {'installed': installed, 'runtime': {role:
             states.get(uuid, {}).get('state') if states is not None else None
             for role, uuid in UUIDS.items()}}
@@ -404,7 +417,7 @@ def main():
             session.finish_profile(args.target, abort=args.action == 'abort-profile')
         elif args.action == 'toggle':
             session.toggle(args.target, args.value == 'on')
-        state = session.status(pending_ok=args.action == 'begin-profile')
+        state = session.status(pending_ok=args.action in ('begin-profile', 'rollback'))
         if args.action == 'status':
             state.update(session.diagnostics())
         print(json.dumps(state))
