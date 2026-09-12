@@ -169,10 +169,14 @@ class ApplicationsIndicator {
                 y_align: Clutter.ActorAlign.CENTER,
             });
         box.add_child(this._icon);
-        box.add_child(new St.Label({
-            text: _('Applications'),
-            y_align: Clutter.ActorAlign.CENTER,
-        }));
+        // MacOS X keeps only the Lyra logo in the top-left application menu.
+        // The button retains its translated accessible name.
+        if (settings.get_string('desktop-profile') !== 'macos') {
+            box.add_child(new St.Label({
+                text: _('Applications'),
+                y_align: Clutter.ActorAlign.CENTER,
+            }));
+        }
         this.button.add_child(box);
 
         this._signals.connect(this._appSystem, 'installed-changed', () => this._rebuild());
@@ -1063,7 +1067,7 @@ export class PanelMenus {
         this._extensionPath = extensionPath;
         for (const key of ['show-applications-menu', 'show-places-menu',
             'show-system-menu', 'show-system-about',
-            'show-search-menu', 'panel-menu-position']) {
+            'show-search-menu', 'panel-menu-position', 'desktop-profile']) {
             this._signals.connect(this._settings, `changed::${key}`,
                 () => this._recreate());
         }
@@ -1092,11 +1096,12 @@ export class PanelMenus {
         this._destroyIndicators();
         this._compact = false;
 
-        const configuredBox = this._settings.get_string('panel-menu-position');
+        const isMacos = this._settings.get_string('desktop-profile') === 'macos';
+        const configuredBox = isMacos ? 'left' : this._settings.get_string('panel-menu-position');
         const box = ['left', 'center', 'right'].includes(configuredBox)
             ? configuredBox
             : 'left';
-        let position = box === 'left' ? 1 : 0;
+        let position = box === 'left' && !isMacos ? 1 : 0;
 
         if (this._settings.get_boolean('show-applications-menu')) {
             this._applications = new ApplicationsIndicator(this._settings, this._extensionPath);
