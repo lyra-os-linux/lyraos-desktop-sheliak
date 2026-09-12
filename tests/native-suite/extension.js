@@ -152,6 +152,7 @@ export default class SuiteTest extends Extension {
         // Completely different activation order exercises provider discovery.
         for (const role of roles) await this.toggle(role, false);
         this.check('native dash restored after full disable', Main.overview.dash.visible);
+        this.check('no orphaned Dock trigger after full disable', !Main.uiGroup.get_children().some(a => a.name === 'lyraDockTrigger'));
         for (const role of ['menus', 'desktop-icons', 'search', 'animations', 'panel', 'dock']) await this.toggle(role, true);
         this.check('late Dock/Panel discover each other', !!api('dock')?.panel);
         for (const role of roles) this.check(`${role} remains active`, ext(role)?.state === 1, ext(role)?.error);

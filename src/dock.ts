@@ -54,6 +54,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     private _laidOutOnce = false;
     private _chromeAdded = false;
     private _chromeOptions = '';
+    private _triggerFullscreen: boolean | null = null;
     private _settings: Gio.Settings;
     private _startupCompleteId = 0;
     private _dragPlaceholder: St.Widget | null = null;
@@ -75,9 +76,11 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     }
 
     setPanelHost(host: St.BoxLayout | null): void {
+        // Keep the trigger hidden while detached; showing it can request an
+        // allocation synchronously before addChrome attaches it to the stage.
+        this._revealTrigger.hide();
         if (this._chromeAdded) {
             Main.layoutManager.removeChrome(this.actor);
-            Main.layoutManager.removeChrome(this._revealTrigger);
             this._chromeAdded = false;
         }
         if (this._panelScroll) {
@@ -97,10 +100,10 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
             this._hidden = false;
         } else {
             this._background.set_child_at_index(this._showApps.actor, this._background.get_children().length - 1);
-            this._revealTrigger.show();
             for (const style of ['windows-taskbar', 'windows10', 'windows11'])
                 this.actor.remove_style_class_name(style);
             this._syncChrome();
+            this._revealTrigger.show();
         }
         this._syncPanelColors();
         this._relayout();
@@ -175,7 +178,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
         // Expose the dock through GNOME's Ctrl+Alt+Tab switcher and keep it
         // revealed while keyboard/assistive focus is inside it. The manager
         // unregisters the group automatically when the actor is destroyed.
-        Main.ctrlAltTabManager.addGroup(this.actor, 'Sheliak', 'view-app-grid-symbolic');
+        Main.ctrlAltTabManager.addGroup(this.actor, 'Lyra Dock', 'view-app-grid-symbolic');
         this._signals.connect(global.stage, 'notify::key-focus',
             () => this._syncVisibility());
 
@@ -311,8 +314,9 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
         this._showApps.destroy();
         this._tooltip.destroy();
         Main.layoutManager.removeChrome(this.actor);
-        Main.layoutManager.removeChrome(this._revealTrigger);
         this.actor.destroy();
+        // LayoutManager untracks a destroyed chrome actor. Keep it on stage
+        // until destruction so Clutter never allocates a detached trigger.
         this._revealTrigger.destroy();
     }
 
@@ -761,18 +765,20 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
         this._chromeOptions = options;
         if (this._chromeAdded) {
             Main.layoutManager.removeChrome(this.actor);
-            Main.layoutManager.removeChrome(this._revealTrigger);
         }
         Main.layoutManager.addChrome(this.actor, {
             affectsInputRegion: true,
             affectsStruts,
             trackFullscreen,
         });
-        Main.layoutManager.addChrome(this._revealTrigger, {
-            affectsInputRegion: true,
-            affectsStruts: false,
-            trackFullscreen,
-        });
+        if (this._triggerFullscreen !== trackFullscreen) {
+            if (this._triggerFullscreen !== null)
+                Main.layoutManager.removeChrome(this._revealTrigger);
+            Main.layoutManager.addChrome(this._revealTrigger, {
+                affectsInputRegion: true, affectsStruts: false, trackFullscreen,
+            });
+            this._triggerFullscreen = trackFullscreen;
+        }
         this._chromeAdded = true;
     }
 
