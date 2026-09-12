@@ -107,6 +107,16 @@ class SuiteMigrationTests(unittest.TestCase):
         self.assertNotIn('other@example.org', s.lists()[0])
         s.recover_transition()
 
+    def test_new_package_requires_shell_discovery_before_disabling_legacy(self):
+        s = self.session
+        before = s.lists()
+        s.runtime_extensions = lambda: {suite.OLD_SHELL: {'state': 1}}
+        with self.assertRaisesRegex(ValueError, 'sign in again'):
+            s.ensure_runtime_ready()
+        self.assertEqual(s.lists(), before)
+        s.runtime_extensions = lambda: {uuid: {'state': 2} for uuid in suite.UUIDS.values()}
+        s.ensure_runtime_ready()
+
     def test_vanilla_requires_selecting_a_layout_before_enabling_shell_components(self):
         self.session.apply('vanilla')
         with self.assertRaises(ValueError): self.session.toggle('dock', True)
