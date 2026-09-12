@@ -388,8 +388,135 @@
     },
     {
       "schema": "org.gnome.shell.extensions.ding",
-      "policy": "inventory separately against pinned upstream before LDI migration"
+      "policy": "private legacy schema retained for migration; keys inventoried in desktop_icons_settings"
     }
   ],
-  "consumer_scope": "Planned cross-component semantic consumers, not an exhaustive scan of current reads; Vega/preferences writers excluded."
+  "consumer_scope": "Semantic owners and cross-component consumers; Vega/preferences are unprivileged writers.",
+  "desktop_icons_settings": {
+    "schema_id": "org.gnome.shell.extensions.lyra-desktop-icons",
+    "schema_path": "/org/gnome/shell/extensions/lyra-desktop-icons/",
+    "legacy_schema_id": "org.gnome.shell.extensions.ding",
+    "keys": [
+      {
+        "key": "icon-size",
+        "type": "enum:org.gnome.shell.extension.lyra-desktop-icons.ZoomLevel",
+        "default": "'standard'",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "show-home",
+        "type": "b",
+        "default": "true",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "show-trash",
+        "type": "b",
+        "default": "true",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "start-corner",
+        "type": "enum:org.gnome.shell.extension.lyra-desktop-icons.StartCorner",
+        "default": "'top-left'",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "show-volumes",
+        "type": "b",
+        "default": "true",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "show-network-volumes",
+        "type": "b",
+        "default": "false",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "add-volumes-opposite",
+        "type": "b",
+        "default": "true",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "show-drop-place",
+        "type": "b",
+        "default": "true",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "sort-special-folders",
+        "type": "b",
+        "default": "false",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "keep-arranged",
+        "type": "b",
+        "default": "false",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "arrangeorder",
+        "type": "enum:org.gnome.shell.extension.lyra-desktop-icons.ArrangeOrder",
+        "default": "'NAME'",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "keep-stacked",
+        "type": "b",
+        "default": "false",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "unstackedtypes",
+        "type": "as",
+        "default": "[]",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "use-nemo",
+        "type": "b",
+        "default": "false",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "show-link-emblem",
+        "type": "b",
+        "default": "true",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "dark-text-in-labels",
+        "type": "b",
+        "default": "false",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      },
+      {
+        "key": "check-x11wayland",
+        "type": "b",
+        "default": "true",
+        "owner": "desktop-icons",
+        "migration": "copy explicit legacy user value only when new value is unset"
+      }
+    ],
+    "file_metadata_policy": "Icon positions and file metadata remain with the upstream Desktop/Nautilus integration; the migrator does not operate on Desktop files."
+  }
 }
