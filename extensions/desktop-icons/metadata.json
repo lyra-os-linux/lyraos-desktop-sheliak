@@ -1,0 +1,13 @@
+{
+  "description": "Files and icons on the Lyra desktop, based on Desktop Icons NG",
+  "name": "Lyra Desktop Icons",
+  "shell-version": [
+    "48"
+  ],
+  "uuid": "desktop-icons@lyraos.com.br",
+  "url": "https://github.com/lyra-os-linux/lyraos-desktop-sheliak",
+  "gettext-domain": "lyra-desktop-icons",
+  "version": 1,
+  "version-name": "2.0.0",
+  "lyra-suite-api": 1
+}

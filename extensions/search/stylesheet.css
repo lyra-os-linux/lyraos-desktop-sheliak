@@ -1,0 +1,37 @@
+#panel .sheliak-search-button.panel-button {
+  padding: 0 4px;
+}
+
+#panel .sheliak-search-button.panel-button:hover,
+#panel .sheliak-search-button.panel-button:focus,
+#panel .sheliak-search-button.panel-button:active,
+#panel .sheliak-search-button.panel-button:checked {
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.sheliak-search-entry {
+  width: 300px;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 12px 4px 10px;
+  spacing: 8px;
+}
+
+.sheliak-search-entry .search-entry-icon {
+  icon-size: 1em;
+  padding: 0;
+}
+
+.sheliak-search-results {
+  -arrow-rise: 0px;
+  -boxpointer-gap: 4px;
+}
+
+.sheliak-search-results .popup-menu-content {
+  min-width: 300px;
+}
+
+.sheliak-search-results .popup-menu-item .popup-menu-icon {
+  icon-size: 20px;
+}

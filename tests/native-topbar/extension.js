@@ -1,3 +1,4 @@
+import {suiteFixture} from './fixture.js';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -70,7 +71,7 @@ export default class TopbarTest extends Extension {
         await wait(2000);
         Main.overview.hide();
         await wait(600);
-        this.ext = Main.extensionManager.lookup('sheliak@lyraos.com.br').stateObj;
+        this.ext = suiteFixture();
         if (!this.ext?._panelMenus) throw Error('Sheliak did not load');
         const expected = {
             en_US: ['Applications', 'Search applications and files…'],
@@ -170,7 +171,7 @@ export default class TopbarTest extends Extension {
             }
         }
         const menus = this.ext._panelMenus;
-        this.ext.disable();
+        await this.ext.disable();
         this.check('disable removes layout source and indicators', !menus._layoutId &&
             !Object.keys(Main.panel.statusArea).some(key => key.startsWith('sheliak-')));
     }

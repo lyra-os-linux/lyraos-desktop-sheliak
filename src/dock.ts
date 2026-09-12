@@ -53,6 +53,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     private _redisplayTimeoutId = 0;
     private _laidOutOnce = false;
     private _chromeAdded = false;
+    private _chromeOptions = '';
     private _settings: Gio.Settings;
     private _startupCompleteId = 0;
     private _dragPlaceholder: St.Widget | null = null;
@@ -163,7 +164,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
             (desktopId, count) => this._onLauncherEntryChanged(desktopId, count));
 
         this._revealTrigger = new St.Widget({
-            name: 'sheliakDockTrigger',
+            name: 'lyraDockTrigger',
             reactive: true,
             can_focus: false,
             opacity: 0,
@@ -729,6 +730,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
             this._laidOutOnce = true;
         }
 
+        if (!this._revealTrigger.get_stage()) return;
         if (position === 'top') {
             this._revealTrigger.set_position(monitor.x, monitor.y);
             this._revealTrigger.set_size(monitor.width, TRIGGER_HEIGHT);
@@ -752,14 +754,18 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
 
     private _syncChrome(): void {
         if (this._panelScroll) return;
+        const trackFullscreen = this._settings.get_boolean('fullscreen-hide');
+        const affectsStruts = windowsProfile(this._settings) !== null;
+        const options = `${trackFullscreen}:${affectsStruts}`;
+        if (this._chromeAdded && this._chromeOptions === options) return;
+        this._chromeOptions = options;
         if (this._chromeAdded) {
             Main.layoutManager.removeChrome(this.actor);
             Main.layoutManager.removeChrome(this._revealTrigger);
         }
-        const trackFullscreen = this._settings.get_boolean('fullscreen-hide');
         Main.layoutManager.addChrome(this.actor, {
             affectsInputRegion: true,
-            affectsStruts: false,
+            affectsStruts,
             trackFullscreen,
         });
         Main.layoutManager.addChrome(this._revealTrigger, {

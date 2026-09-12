@@ -1,0 +1,13 @@
+{
+  "name": "Sheliak",
+  "version": "2.0.0",
+  "api": 1,
+  "extensions": [
+    "dock@lyraos.com.br",
+    "panel@lyraos.com.br",
+    "menus@lyraos.com.br",
+    "search@lyraos.com.br",
+    "animations@lyraos.com.br",
+    "desktop-icons@lyraos.com.br"
+  ]
+}

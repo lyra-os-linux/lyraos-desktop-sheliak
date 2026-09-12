@@ -1,3 +1,4 @@
+import {suiteFixture} from './fixture.js';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -87,7 +88,7 @@ export default class PinsTest extends Extension {
     }
     async run() {
         await wait(3500); Main.overview.hide(); await wait(300);
-        this.ext = Main.extensionManager.lookup('sheliak@lyraos.com.br').stateObj;
+        this.ext = suiteFixture();
         this.settings = this.ext._settings;
         const seat = Clutter.get_default_backend().get_default_seat();
         this.keyboard = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
@@ -161,9 +162,9 @@ export default class PinsTest extends Extension {
         this.check('global favorites never modified', same(global.settings.get_strv('favorite-apps'), seed));
         await this.profile('windows11');
         this.start().menu.close();
-        this.ext.disable(); await wait(250);
+        await this.ext.disable(); await wait(250);
         this.check('disable releases modal grabs', Main.modalCount === baselineModal, {baselineModal, actual: Main.modalCount});
-        this.ext.enable(); await wait(400);
+        await this.ext.enable(); await wait(400);
         this.settings = this.ext._settings;
         this.check('empty menu persists across extension restart', this.ids('windows11', 'menu').length === 0);
         this.check('empty panel persists across extension restart', this.panel().length === 0);
@@ -179,6 +180,6 @@ export default class PinsTest extends Extension {
         this.check('keyboard scrolls the last card into view', this.start()._pinnedScroll.vadjustment.value > 0);
         await this.choose(this.menuContext(many.at(-1)), 'Unpin from Start');
         this.check('a favorite beyond the first page can be removed', !this.ids('windows11', 'menu').includes(many.at(-1)));
-        this.ext.disable();
+        await this.ext.disable();
     }
 }

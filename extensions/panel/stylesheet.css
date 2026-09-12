@@ -1,0 +1,11 @@
+#panel.sheliak-windows-panel { border-radius: 0; margin: 0; padding: 0; }
+
+#panel.sheliak-windows-panel .panel-button { -natural-hpadding: 10px; -minimum-hpadding: 6px; }
+
+#panel.sheliak-panel-floating {
+  border-radius: 16px;
+}
+
+#panel.sheliak-panel-floating.sheliak-panel-flush {
+  border-radius: 0;
+}

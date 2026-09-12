@@ -27,6 +27,10 @@ if not args.inside_private_bus:
     with tempfile.TemporaryDirectory(prefix='sheliak-topbar-') as temporary:
         root = Path(temporary)
         env = os.environ.copy()
+        private_home = root / 'home'
+        private_home.mkdir(mode=0o700)
+        env['HOME'] = str(private_home)
+        env['SHELIAK_PRIVATE_NATIVE_TEST'] = '1'
         for key in ['DISPLAY', 'WAYLAND_DISPLAY', 'SESSION_MANAGER', 'DBUS_SESSION_BUS_ADDRESS',
                     'DBUS_SYSTEM_BUS_ADDRESS', 'XDG_SESSION_ID']:
             env.pop(key, None)
@@ -46,8 +50,12 @@ if not args.inside_private_bus:
         (probe / 'metadata.json').write_text(json.dumps({'uuid': uuid, 'name': 'Topbar regression',
             'description': 'Disposable native test', 'shell-version': ['48']}))
         shutil.copy2(HERE / 'extension.js', probe / 'extension.js')
-        production = extensions / 'sheliak@lyraos.com.br'
-        shutil.copytree(args.dist.resolve(), production)
+        suite = args.dist.resolve() / 'extensions'
+        production_ids = sorted(p.name for p in suite.iterdir() if p.name != 'desktop-icons@lyraos.com.br')
+        for name in production_ids:
+            shutil.copytree(suite / name, extensions / name)
+        production = extensions / 'dock@lyraos.com.br'
+        shutil.copy2(HERE.parent / 'native-suite/fixture.js', extensions / uuid / 'fixture.js')
         apps = root / 'data/applications'
         apps.mkdir()
         (apps / 'org.lyraos.TopbarProbe.desktop').write_text(
@@ -63,7 +71,7 @@ if not args.inside_private_bus:
                             'org.gnome.shell.extensions.sheliak', key, value], env=env, check=True)
         subprocess.run(['gsettings', 'set', 'org.gnome.desktop.interface', 'scaling-factor', str(args.scale)], env=env, check=True)
         subprocess.run(['gsettings', 'set', 'org.gnome.shell', 'enabled-extensions',
-                        "['sheliak@lyraos.com.br', '"+uuid+"']"], env=env, check=True)
+                        str(production_ids + [uuid])], env=env, check=True)
         result.write_text(json.dumps({'status': 'pending'}))
         with (output / 'bus.log').open('w') as log:
             process = subprocess.Popen(['dbus-run-session', '--', sys.executable, str(Path(__file__).resolve()),

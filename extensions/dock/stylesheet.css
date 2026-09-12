@@ -1,0 +1,99 @@
+#dash.sheliak-dock {
+  padding: 0;
+}
+
+#dash.sheliak-dock.windows-taskbar .dash-background { padding: 0 6px; spacing: 2px; border: 0; box-shadow: none; }
+
+#dash.sheliak-dock.windows-taskbar .sheliak-apps { spacing: 2px; }
+
+#dash.sheliak-dock.windows-taskbar .overview-icon { padding: 5px 8px; border-radius: 4px; }
+
+#dash.sheliak-dock.windows10 .overview-icon { border-radius: 0; }
+
+#dash.sheliak-dock.windows-taskbar .sheliak-indicator-row { margin-top: 2px; height: 3px; }
+
+#dash.sheliak-dock.windows-taskbar .app-grid-running-dot { width: 16px; height: 3px; border-radius: 2px; }
+
+#dash.sheliak-dock.windows10 .app-grid-running-dot { width: 28px; border-radius: 0; }
+
+#dash.sheliak-dock .dash-background {
+  margin: 0;
+  spacing: 6px;
+}
+
+#dash.sheliak-dock.squared .dash-background {
+  border-radius: 0;
+}
+
+.sheliak-apps {
+  spacing: 4px;
+}
+
+#dash.sheliak-dock .sheliak-app-button,
+#dash.sheliak-dock .sheliak-system-button {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+}
+
+#dash .dash-item-container .sheliak-app-button .overview-icon,
+#dash .dash-item-container .sheliak-system-button .overview-icon {
+  background-color: transparent;
+  color: inherit;
+}
+
+#dash .dash-item-container .sheliak-app-button:hover .overview-icon,
+#dash .dash-item-container .sheliak-app-button:focus .overview-icon,
+#dash .dash-item-container .sheliak-system-button:hover .overview-icon,
+#dash .dash-item-container .sheliak-system-button:focus .overview-icon {
+  background-color: st-transparentize(-st-accent-color, 0.85);
+}
+
+#dash .dash-item-container .sheliak-app-button:active .overview-icon,
+#dash .dash-item-container .sheliak-app-button:checked .overview-icon,
+#dash .dash-item-container .sheliak-system-button:active .overview-icon,
+#dash .dash-item-container .sheliak-system-button:checked .overview-icon {
+  background-color: st-transparentize(-st-accent-color, 0.7);
+}
+
+.sheliak-indicator-row {
+  margin-top: 3px;
+}
+
+#dash.sheliak-dock .app-grid-running-dot {
+  offset-y: 0;
+  background-color: -st-accent-color;
+}
+
+.sheliak-window-count,
+.sheliak-app-badge {
+  min-width: 14px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+#dash.sheliak-dock .sheliak-separator {
+  width: 1px;
+  margin: 5px 3px;
+}
+
+#dash.sheliak-dock.vertical .sheliak-separator {
+  width: auto;
+  height: 1px;
+  margin: 3px 5px;
+}
+
+.sheliak-menu {
+  min-width: 220px;
+}
+
+.sheliak-app-button.dragging {
+  opacity: 0.4;
+}
+
+.sheliak-drag-placeholder {
+  border-radius: 12px;
+  background-color: st-transparentize(-st-accent-color, 0.75);
+}

@@ -19,6 +19,7 @@ parser.add_argument('--desktop-icons', type=Path, help='Optional packaged DING e
 parser.add_argument('--width', type=int, default=1440)
 parser.add_argument('--scale', type=int, choices=[1, 2], default=1)
 parser.add_argument('--language', choices=['en_US', 'pt_BR', 'es_ES'], default='en_US')
+parser.add_argument('--legacy-extensions', type=Path, help='Directory containing the two previous extension UUIDs')
 parser.add_argument('--inside-private-bus', action='store_true')
 args = parser.parse_args()
 output = args.output.resolve()
@@ -48,11 +49,24 @@ if not args.inside_private_bus:
         (probe / 'metadata.json').write_text(json.dumps({'uuid': uuid, 'name': 'Pins regression',
             'description': 'Disposable native test', 'shell-version': ['48']}))
         shutil.copy2(args.probe.resolve(), probe / 'extension.js')
-        production = extensions / 'sheliak@lyraos.com.br'
-        shutil.copytree(args.dist.resolve(), production)
-        if args.desktop_icons:
+        shutil.copy2(HERE.parent / 'native-suite/fixture.js', probe / 'fixture.js')
+        suite = args.dist.resolve() / 'extensions'
+        if suite.is_dir():
+            production_ids = sorted(p.name for p in suite.iterdir() if (p / 'metadata.json').is_file())
+            for name in production_ids:
+                shutil.copytree(suite / name, extensions / name)
+            production = extensions / 'dock@lyraos.com.br'
+        else:
+            production_ids = ['sheliak@lyraos.com.br']
+            production = extensions / production_ids[0]
+            shutil.copytree(args.dist.resolve(), production)
+        # Always isolate HOME, including tests without desktop icons.
+        home = root / 'home'
+        home.mkdir()
+        env['HOME'] = str(home)
+        if args.desktop_icons or 'desktop-icons@lyraos.com.br' in production_ids:
             home = root / 'home'
-            home.mkdir()
+            home.mkdir(exist_ok=True)
             env['HOME'] = str(home)
             for name in ['Desktop', 'Downloads', 'Documents', 'Templates']:
                 (home / name).mkdir()
@@ -61,8 +75,9 @@ if not args.inside_private_bus:
                 for name in ['Desktop', 'Downloads', 'Documents', 'Templates']))
             (home / 'Desktop/Fixture.txt').write_text('Private desktop fixture\n')
             (home / 'Downloads/Dragged.txt').write_text('Private drag and drop fixture\n')
-            ding = extensions / 'ding@rastersoft.com'
-            shutil.copytree(args.desktop_icons.resolve(), ding)
+            ding = extensions / ('ding@rastersoft.com' if args.desktop_icons else 'desktop-icons@lyraos.com.br')
+            if args.desktop_icons:
+                shutil.copytree(args.desktop_icons.resolve(), ding)
             env['GSETTINGS_SCHEMA_DIR'] = str(ding / 'schemas')
             env['DING_PRIVATE_NATIVE_TEST'] = '1'
         apps = root / 'data/applications'
@@ -81,8 +96,14 @@ if not args.inside_private_bus:
             subprocess.run(['gsettings', '--schemadir', str(production / 'schemas'), 'set',
                             'org.gnome.shell.extensions.sheliak', key, value], env=env, check=True)
         subprocess.run(['gsettings', 'set', 'org.gnome.desktop.interface', 'scaling-factor', str(args.scale)], env=env, check=True)
+        if args.legacy_extensions:
+            legacy = ['sheliak@lyraos.com.br', 'ding@rastersoft.com']
+            for name in legacy:
+                shutil.copytree(args.legacy_extensions.resolve() / name, extensions / name)
+            production_ids = legacy
+            env['LYRA_NATIVE_LEGACY_MIGRATION'] = '1'
         subprocess.run(['gsettings', 'set', 'org.gnome.shell', 'enabled-extensions',
-                        "['sheliak@lyraos.com.br', '"+uuid+"'" + (", 'ding@rastersoft.com'" if args.desktop_icons else "") + "]"], env=env, check=True)
+                        str(production_ids + [uuid] + (['ding@rastersoft.com'] if args.desktop_icons else []))], env=env, check=True)
         result.write_text(json.dumps({'status': 'pending'}))
         with (output / 'bus.log').open('w') as log:
             process = subprocess.Popen(['dbus-run-session', '--', sys.executable, str(Path(__file__).resolve()),

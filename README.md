@@ -1,103 +1,75 @@
-# Sheliak
+# Sheliak — extensões Lyra para GNOME
 
-Sheliak é o dock do Lyra OS para o GNOME Shell. A versão 1 oferece favoritos,
-aplicativos em execução, menus por aplicativo, lixeira dinâmica e acesso à
-grade nativa de aplicativos. O dock fica centralizado na borda esquerda e usa
-ocultação inteligente quando uma janela ocupa sua área.
+Sheliak 2.0 entrega seis extensões no mesmo RPM:
 
-A extensão também permite ajustar a altura da barra superior e ocultar o relógio
-ou os indicadores nativos à direita. Ela oferece menus opcionais de
-**Aplicativos**, **Locais**, **Sistema** e **Busca** nessa barra: Aplicativos são
-organizados por categoria; Locais reúne pastas pessoais, marcadores do
-gerenciador de arquivos e volumes montados; Sistema oferece acesso ao código
-fonte, ao relatório de problemas, ao Vega e às informações do sistema; e Busca
-encontra aplicativos e configurações.
+| Extensão | UUID |
+| --- | --- |
+| Lyra Dock | `dock@lyraos.com.br` |
+| Lyra Painel | `panel@lyraos.com.br` |
+| Lyra Menus | `menus@lyraos.com.br` |
+| Lyra Busca | `search@lyraos.com.br` |
+| Lyra Animações | `animations@lyraos.com.br` |
+| Lyra Desktop Icons | `desktop-icons@lyraos.com.br` |
 
-Cada menu, sua posição e seus conteúdos dinâmicos podem ser configurados na
-página Barra superior das preferências. A mesma página permite ocultar o botão
-nativo de áreas de trabalho, ordenar categorias e aplicativos alfabeticamente
-e abrir os submenus de categorias lateralmente.
+O Vega GTK 5.1.35 configura os componentes e os perfis Lyra, GNOME Vanilla,
+Ubuntu, Lyra Clássico, Lyra Central e Lyra Flutuante. O Welcome 0.4.1 usa o
+mesmo comando de perfis do Vega. Os IDs antigos permanecem compatíveis para
+preservar favoritos e configurações; nomes apresentados usam identidade Lyra.
 
-Ao minimizar ou restaurar uma janela, o Sheliak oferece animações de zoom ao
-ícone e desvanecimento, além da opção sem animação. Os efeitos que usam o item
-correspondente no dock como destino acompanham o dock nas bordas inferior,
-esquerda e direita.
+A extensão monolítica anterior não é instalada por este pacote. Cada extensão
+possui enable/disable próprio; Dock/Painel/Menus negociam os elementos que
+compartilham e restauram os recursos nativos quando são desligados. O desktop
+continua independente dos layouts, inclusive no GNOME Vanilla.
 
-As configurações podem ser abertas pelo gerenciador de extensões do GNOME e
-incluem posição, tamanho dos ícones, margem, animações do dock e das janelas e
-três modos de visibilidade (ocultação inteligente, auto hide e sempre ativo),
-além dos elementos exibidos. A página Sobre reúne website, relatório de erros,
-créditos e informações legais.
+## Compatibilidade e distribuição
 
-## Compatibilidade
-
-- GNOME Shell 48 (versão 48.4 no openSUSE Leap 16.0)
-- Sessão Wayland
-
-## Pacote oficial para openSUSE
-
-O pacote oficial chama-se `sheliak` e é publicado no projeto OBS
-`home:rodrigosbrito:lyra`.
-
-No openSUSE Leap 16.0:
+GNOME Shell 48, sessão Wayland. Pacote OBS: `sheliak`, no projeto Lyra.
+A instalação de fontes locais usa `npm run build`; o OBS recebe o tarball de
+fontes com o bundle gerado. Não requer rede ou npm dentro do build RPM.
 
 ```sh
-sudo zypper ar -f \
-  https://download.opensuse.org/repositories/home:/rodrigosbrito:/lyra/openSUSE_Leap_16.0/ \
-  home:rodrigosbrito:lyra
-sudo zypper refresh
-sudo zypper install sheliak
-```
-
-Depois da instalação, encerre e inicie a sessão GNOME e habilite a extensão:
-
-```sh
-gnome-extensions enable sheliak@lyraos.com.br
-```
-
-## Build
-
-```sh
-npm install
+npm ci
 npm run check
-npm run build
+npm test
 ```
 
-O diretório `dist/` contém a extensão pronta. Para gerar um ZIP:
+`dist/extensions/` contém exatamente os seis diretórios de extensões.
+`dist/common/` é intermediário de build. O spec é `packaging/sheliak.spec`.
 
-```sh
-npm run pack
-```
+## Migração por usuário
 
-## Instalação local
+O auxiliar `/usr/libexec/lyra/shell-suite migrate`, executado no login GNOME,
+preserva preferências e substitui os UUIDs antigos na sessão. O snapshot fica
+em `$XDG_STATE_HOME/lyra/shell-suite/migration-v1.json` (por padrão,
+`~/.local/state/lyra/shell-suite/`). Nunca executar esse auxiliar como root.
 
-```sh
-mkdir -p ~/.local/share/gnome-shell/extensions/sheliak@lyraos.com.br
-cp -a dist/. ~/.local/share/gnome-shell/extensions/sheliak@lyraos.com.br/
-gnome-extensions enable sheliak@lyraos.com.br
-```
+O migrador não move nem apaga arquivos do Desktop. A opção de desktop desligado,
+listas vazias explícitas, favoritos separados, bloqueio global do GNOME e
+extensões de terceiros são preservados. Mudanças interrompidas de componentes
+ficam registradas para recuperação; o status não anuncia sucesso enquanto
+houver uma transição incompleta. Aplique novamente o perfil para retomá-la.
 
-Em Wayland, encerre e inicie a sessão depois da instalação ou atualização do
-pacote. Alternar entre GNOME Vanilla e Lyra reativa a extensão, mas não
-recarrega seu módulo JavaScript. Depois que a versão atualizada é carregada,
-as cores são reaplicadas em cada ativação do perfil Lyra.
+Atualizações exigem novo login para carregar os módulos novos do GNOME Shell.
+Não recarregar o Shell da sessão pessoal à força. Para reversão, usar uma
+combinação compatível dos RPMs anteriores e o snapshot, restaurando apenas
+as preferências pertencentes ao conjunto; preservar alterações posteriores
+nas extensões de terceiros e todos os arquivos do Desktop.
 
-## Empacotamento
+## Lyra Desktop Icons
 
-O pacote do sistema deve instalar o conteúdo de `dist/` em:
+O código está em `extensions/desktop-icons/`, baseado no DING 49.0.5.
+COPYING, créditos e proveniência upstream são preservados; detalhes de manutenção
+em `extensions/desktop-icons/UPSTREAM.md`. O aplicativo auxiliar GJS/GTK e a
+integração com Nautilus são mantidos. Os catálogos português e espanhol têm
+190 mensagens traduzidas e são verificados no build de testes.
 
-`/usr/share/gnome-shell/extensions/sheliak@lyraos.com.br/`
+## Organização e validação
 
-O spec de referência está em `packaging/sheliak.spec`. O destino oficial é:
-
-- Projeto OBS: `home:rodrigosbrito:lyra`
-- Pacote: `sheliak`
-- Repositório Git: `https://github.com/lyra-os-linux/lyraos-desktop-sheliak`
-
-A imagem/meta-pacote do Lyra OS deve instalar `sheliak`, habilitar
-`sheliak@lyraos.com.br` por padrão e remover a dependência de Dash to Dock. O
-meta-pacote e o `Lyra-Themes` não fazem parte deste repositório; essa troca deve
-ser aplicada no repositório que atualmente declara a dependência.
+Os contratos e a matriz de integração estão em
+[docs/extension-suite-contracts.md](docs/extension-suite-contracts.md).
+As configurações são inventariadas em `docs/extension-suite-inventory.json`.
+Testes nativos usam um GNOME isolado e HOME temporário; os adaptadores dentro
+de `tests/native-suite/` não são instalados no RPM.
 
 ## Identidade visual
 
@@ -176,7 +148,7 @@ buscar e abrir aplicativos, acessar configurações, bloquear e desligar com a
 confirmação nativa. Os ícones mantêm a identidade dos aplicativos instalados.
 
 A partir de 1.14.0, os aplicativos fixados no painel e os favoritos dos cards
-do Iniciar são listas independentes, também separadas entre Lyra Clássico e 11.
+do Iniciar são listas independentes, também separadas entre Lyra Clássico e Lyra Central.
 O painel começa com Vega, Arquivos e Firefox. Os cards recebem uma cópia dos
 favoritos atuais do GNOME na primeira ativação de cada perfil. Depois disso,
 alterar qualquer uma das quatro listas não modifica as demais nem os favoritos
@@ -217,21 +189,39 @@ O GNOME Shell 48 não expõe uma API pública estável de desfoque do conteúdo
 atrás de um ator de extensão. A v1 usa transparência e sombra nativas; não usa
 `Shell.BlurEffect`, pois esse efeito desfocaria o próprio dock.
 
-## Licença
+## Lyra Flutuante e área de trabalho
 
-GPL-3.0-or-later.
+O perfil `macos` usa o logo L à esquerda da barra superior e dock inferior
+flutuante centralizado. O Vega controla os valores do perfil e suas preferências.
+Lyra Desktop Icons é parte do mesmo RPM, com UUID `desktop-icons@lyraos.com.br`;
+seu interruptor é independente dos perfis.
 
-### Lyra Flutuante and desktop icons
+Para testar o conjunto e a migração em GNOME descartável, use
+`tests/native-pins/run.py --probe tests/native-suite/extension.js --output PATH`.
+`LYRA_NATIVE_SUITE_HELPER` aponta para `packaging/lyra-shell-suite.py`;
+`LYRA_NATIVE_VEGA_BINARY` e `VEGA_DESKTOP_TEST_BINARY` permitem testar o Vega real.
+`--legacy-extensions PATH` ensaia atualização e reversão com cópias dos UUIDs
+antigos encontrados naquele diretório. O runner usa HOME e barramento privados.
 
-Sheliak 1.16.0 advertises `macos-profile-supported` for Vega GTK 5.1.34. The
-`macos` profile displays only the Lyra application logo at the left of the top
-bar. Vega owns the dock preset, profile snapshots and restoration. Windows and
-Lyra menus keep their existing labels and behavior.
+## Recuperação de perfis e reversão do pacote
 
-Desktop icons use the separately packaged upstream Desktop Icons NG extension
-(`ding@rastersoft.com`). Vega controls that extension independently of the profile.
-To test the packaged DING payload without touching personal files, run
-`tests/native-pins/run.py --desktop-icons PATH --probe tests/native-desktop-icons/extension.js --output PATH`.
-`VEGA_DESKTOP_TEST_BINARY` must point to Vega's Cargo test executable. The runner
-creates a private HOME and Desktop, validates enable/disable in a private GNOME
-Shell, and exercises Vega's real GTK switch callbacks and profile persistence.
+Antes de alterar o layout, o Vega solicita `begin-profile` ao auxiliar. O registro
+`profile-v1.json` inclui as preferências e os componentes anteriores, com identidade
+do processo controlador. `commit-profile` conclui a troca; `abort-profile` restaura
+o estado em falha. Outro processo não pode iniciar uma troca concorrente. Se o
+controlador morrer, o próximo login ou tentativa recupera o registro antes de
+prosseguir. O estado incompleto não é apresentado como uma seleção confirmada.
+
+Guarde os RPMs anteriores compatíveis. Para voltar à combinação antiga, execute
+`/usr/libexec/lyra/shell-suite rollback` na sessão do usuário antes de reinstalar
+os RPMs anteriores de Sheliak, Vega, Welcome e DING. O comando usa o snapshot da
+migração, preserva escolhas posteriores de extensões de terceiros e prepara os
+UUIDs anteriores para o próximo login. Não recarregue o Shell à força; reinstale
+os RPMs antigos antes de sair da sessão. O histórico fica em
+`last-rollback-v1.json`. Nenhuma dessas operações altera arquivos do Desktop.
+
+## Licenças
+
+O código original Sheliak usa GPL-3.0-or-later. O fork LDI mantém os avisos
+GPL-3.0-only ou GPL-3.0-or-later de cada arquivo. O RPM declara ambas; consulte
+`LICENSE`, `extensions/desktop-icons/COPYING` e `UPSTREAM.md`.

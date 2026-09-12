@@ -3,10 +3,10 @@ import {execFileSync} from 'node:child_process';
 import {readFileSync, readdirSync} from 'node:fs';
 import {resolve} from 'node:path';
 
-const sourceFiles = readdirSync('src').filter(file => file.endsWith('.ts'));
+const sourceFiles = readdirSync('src', {recursive: true}).filter(file => file.endsWith('.ts'));
 const sources = sourceFiles.map(file => readFileSync(`src/${file}`, 'utf8')).join('\n');
 const sourceKeys = new Set([...sources.matchAll(/_\('([^']+)'\)/g)].map(match => match[1]));
-sourceKeys.add('Native Lyra ecosystem dock for GNOME Shell');
+
 
 assert.deepEqual(readdirSync('po').filter(file => file.endsWith('.json')).sort(),
     ['en-US.json', 'es-ES.json', 'pt-BR.json']);
@@ -25,7 +25,7 @@ const cases = [
 ];
 for (const [lang, expected] of cases) {
     const env = {...process.env, LANG: lang, TEXTDOMAIN: 'sheliak',
-        TEXTDOMAINDIR: resolve('dist/locale')};
+        TEXTDOMAINDIR: resolve('dist/common/locale')};
     delete env.LC_ALL;
     delete env.LC_MESSAGES;
     delete env.LANGUAGE;
@@ -41,7 +41,7 @@ const menuKeys = ['Start', 'Search applications…', 'Pinned', 'All applications
 for (const locale of ['en-US', 'pt-BR', 'es-ES']) {
     const catalog = JSON.parse(readFileSync(`po/${locale}.json`, 'utf8'));
     const env = {...process.env, LANG: `${locale.replace('-', '_')}.UTF-8`,
-        TEXTDOMAIN: 'sheliak', TEXTDOMAINDIR: resolve('dist/locale')};
+        TEXTDOMAIN: 'sheliak', TEXTDOMAINDIR: resolve('dist/common/locale')};
     for (const key of ['LC_ALL', 'LC_MESSAGES', 'LANGUAGE']) delete env[key];
     for (const key of menuKeys)
         assert.equal(execFileSync('gettext', [key], {encoding: 'utf8', env}),
@@ -60,18 +60,18 @@ for (const [localeEnv, expected] of precedenceCases) {
     delete env.LANGUAGE;
     Object.assign(env, localeEnv, {
         TEXTDOMAIN: 'sheliak',
-        TEXTDOMAINDIR: resolve('dist/locale'),
+        TEXTDOMAINDIR: resolve('dist/common/locale'),
     });
     const actual = execFileSync('gettext', ['Applications'], {encoding: 'utf8', env});
     assert.equal(actual, expected, JSON.stringify(localeEnv));
 }
 
 for (const locale of ['en_US', 'pt_BR', 'es_ES']) {
-    const mo = `dist/locale/${locale}/LC_MESSAGES/sheliak.mo`;
+    const mo = `dist/common/locale/${locale}/LC_MESSAGES/sheliak.mo`;
     assert.doesNotThrow(() => execFileSync('msgunfmt', [mo]));
 }
 
-const metadata = JSON.parse(readFileSync('metadata.json', 'utf8'));
+const metadata = JSON.parse(readFileSync('extensions/dock/metadata.json', 'utf8'));
 assert.equal(metadata['gettext-domain'], 'sheliak');
 assert.match(readFileSync('src/showAppsButton.ts', 'utf8'), /accessible_name: _\('Show Applications'\)/);
 assert.match(readFileSync('src/trashIcon.ts', 'utf8'), /accessible_name: _\('Trash'\)/);
@@ -80,10 +80,10 @@ assert.match(sources, /_\('Report an Issue'\), 'dialog-warning-symbolic'/);
 assert.doesNotMatch(sources, /(?:title|subtitle|label|text|accessible_name|hint_text):\s*['"][^'"]*[À-ÿ]/);
 
 const spec = readFileSync('packaging/sheliak.spec', 'utf8');
-assert.match(spec, /dist\/locale/);
-assert.match(spec, /extensions\/sheliak@lyraos\.com\.br\/locale/);
+assert.match(spec, /dist\/extensions/);
+assert.doesNotMatch(spec.split('%files')[1], /extensions\/sheliak@lyraos/);
 const makefile = readFileSync('Makefile', 'utf8');
-assert.match(makefile, /dist\/locale/);
+assert.match(makefile, /dist\/extensions/);
 
 for (const css of ['stylesheet.css', 'prefs.css']) {
     const contents = readFileSync(css, 'utf8');

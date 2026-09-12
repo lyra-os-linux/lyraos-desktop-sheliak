@@ -1,7 +1,7 @@
 # Contratos da suíte de extensões Lyra
 
-Estado: etapa 1, inventário e fronteiras definidos; extração em execução ainda
-pendente. Base examinada: Sheliak `12ce13dc75aeaecadb0067f5d3c6d7ad8b93900c`,
+Estado: extração das seis extensões implementada; qualificação e publicação
+em andamento. Base examinada: Sheliak `12ce13dc75aeaecadb0067f5d3c6d7ad8b93900c`,
 Vega `d26c7ff35d820c2a86765539902b3744b1067204`. Motivação aprovada: organização
 para manutenção/expansão. Nenhuma alegação de lentidão.
 
@@ -11,7 +11,7 @@ Um repositório, um RPM `sheliak`, seis extensões propostas: Lyra Dock, Lyra Pa
 Lyra Menus, Lyra Busca, Lyra Animações e Lyra Desktop Icons. Core, Aparência e
 Layouts são código compartilhado, sem uma extensão central obrigatória.
 Cada extensão pode ser desativada. Não haverá extensão chamada Sheliak na entrega
-final. Esta etapa preserva a entrada antiga enquanto prepara a separação.
+final. A entrada antiga foi removida; o RPM instala somente os seis novos UUIDs.
 
 | Responsável futuro | Origem atual | Responsabilidade exclusiva |
 | --- | --- | --- |
@@ -124,8 +124,8 @@ callbacks guardam uma geração para ignorar trabalho da instância anterior.
 
 ## Configurações e perfis
 
-O arquivo `extension-suite-inventory.json` enumera todas as chaves do schema
-atual, com tipo, proprietário futuro, consumidores adicionais e tratamento.
+O arquivo `extension-suite-inventory.json` enumera as 42 chaves originais e duas
+novas chaves de coordenação por perfil, com tipo, proprietário futuro, consumidores adicionais e tratamento.
 Os proprietários são responsáveis pela semântica, não os únicos escritores:
 Vega e preferências podem escrever valores validados na sessão do usuário.
 
@@ -170,14 +170,14 @@ recuperação, não pode ser anunciada como perfil confirmado.
 - Testes nativos usam HOME privado/VM. Não alterar ou encerrar a sessão pessoal
   para ensaiar falhas. Não confundir catálogo traduzido com validação visual.
 
-## Marco atual e próximos passos
+## Marco atual
 
-Esta entrega não muda os perfis nem instala novas extensões. O contrato tipado
-retira a dependência direta de WindowsPanel da implementação inteira de Dock.
-Antes do próximo marco, conferir TypeScript/testes existentes e comparar o bundle
-com a base: a saída executável deve permanecer idêntica nesta etapa.
+As seis extensões são geradas por `scripts/build.mjs` e instaladas juntas pelo
+spec Sheliak 2.0. A camada de sessão Python migra configurações, aplica conjuntos
+de componentes e recupera transições interrompidas; o Vega preserva a lógica
+existente dos layouts e usa esse auxiliar sem privilégios. Welcome continua
+usando a interface versionada do Vega. Alterações no vegad não foram necessárias.
 
-Próximo marco: renomear as interfaces para os nomes próprios aprovados e iniciar
-a extração interna pelas fronteiras documentadas. Versão do RPM e UUIDs só mudam
-quando houver um candidato coerente com migração; nada deste inventário é
-evidência de que seis extensões já estejam implementadas ou qualificadas.
+A validação inclui contratos de ciclo de vida, testes antigos do dock/menus,
+catálogos, testes de migração e sessão GNOME privada com o Vega/GTK real.
+Conclusão dos testes não equivale a promoção OBS nem qualificação da ISO.

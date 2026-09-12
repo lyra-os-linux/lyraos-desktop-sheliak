@@ -9,7 +9,7 @@ import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js'
 // accessible, and expose activation through the same clicked signal. Calling
 // Atk.Object.initialize(actor) from GJS is unsafe: its data is an untyped pointer.
 const AppAccessible = GObject.registerClass({
-    GTypeName: 'SheliakAppAccessible',
+    GTypeName: 'LyraDockAppAccessible',
     Implements: [Atk.Action, Atk.Component],
 }, class AppAccessible extends St.WidgetAccessible {
     private _actor: St.Button | null = null;
@@ -82,7 +82,7 @@ const AppAccessible = GObject.registerClass({
 
 // Override the lookup, keeping the native accessible owned by St.Button. Do not
 // replace it with set_accessible(): ATK owns its association with the actor.
-export const AppButton = GObject.registerClass({GTypeName: 'SheliakAppButton'},
+export const AppButton = GObject.registerClass({GTypeName: 'LyraDockAppButton'},
     class AppButton extends St.Button {
         declare private _appAccessible: InstanceType<typeof AppAccessible> | undefined;
 

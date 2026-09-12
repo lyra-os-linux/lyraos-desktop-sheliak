@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "status": "planned_ownership_not_extracted",
+  "status": "implemented_pending_release_qualification",
   "baseline_commit": "12ce13dc75aeaecadb0067f5d3c6d7ad8b93900c",
   "schema_id": "org.gnome.shell.extensions.sheliak",
   "schema_path": "/org/gnome/shell/extensions/sheliak/",
@@ -351,6 +351,22 @@
       "owner": "menus",
       "additional_consumers": [],
       "migration": "preserve"
+    },
+    {
+      "key": "suite-current-profile",
+      "type": "s",
+      "default": "''",
+      "owner": "layouts",
+      "additional_consumers": [],
+      "migration": "new_key_preserve_legacy_snapshots"
+    },
+    {
+      "key": "suite-profile-components",
+      "type": "s",
+      "default": "''",
+      "owner": "layouts",
+      "additional_consumers": [],
+      "migration": "new_key_preserve_legacy_snapshots"
     }
   ],
   "external_settings": [

@@ -1,15 +1,13 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
-import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import type {DockPanelIntegration, DockLauncherIntegration} from './contracts/dockIntegration.js';
+import type {DockPanelIntegration} from './contracts/dockIntegration.js';
 import {windowsProfile, type WindowsProfile} from './desktopProfile.js';
 import {SignalTracker} from './signals.js';
-import {StartMenu} from './startMenu.js';
 
 type PanelBoxes = { _centerBox: St.BoxLayout; _rightBox: St.BoxLayout };
 type Indicator = {container: St.Widget; menu?: PopupMenu.PopupMenu};
@@ -33,16 +31,14 @@ export class WindowsPanel {
     private _clockParent: Clutter.Actor | null = null;
     private _clockIndex = 0;
     private _arrows = new Map<Arrow, {side: St.Side; destroyId: number}>();
-    private _start: StartMenu | null = null;
-    private _overlayHandler = 0;
-    private _overlayOriginal = 0;
     private _centerTranslation = 0;
     private _chromeParams: ChromeParams | null = null;
     private _barrierOriginal: (() => void) | null = null;
     private _barrierOverride: (() => void) | null = null;
 
     constructor(private _settings: Gio.Settings,
-        private _dock: DockPanelIntegration & DockLauncherIntegration) {
+        private _dock: DockPanelIntegration | null = null,
+        private _changed: () => void = () => {}) {
         this._signals.connect(_settings, 'changed::desktop-profile', () => this._sync());
         this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._position());
         for (const property of ['x', 'y', 'width', 'height'])
@@ -52,6 +48,23 @@ export class WindowsPanel {
         this._signals.connect(this._panel._rightBox, 'child-added', () => this._syncMenus());
         this._signals.connect(this._panel._rightBox, 'notify::allocation', () => this._align());
         this._sync();
+    }
+
+    get active(): boolean { return this._active !== null; }
+    get anchor(): St.BoxLayout { return this._panel._centerBox; }
+
+    attachDock(dock: DockPanelIntegration): () => void {
+        if (!this._active) return () => {};
+        this._dock?.setPanelHost(null);
+        this._dock = dock;
+        dock.setPanelHost(this._panel._centerBox);
+        this._align();
+        return () => {
+            if (this._dock !== dock) return;
+            this._dock = null;
+            dock.setPanelHost(null);
+            this._align();
+        };
     }
 
     destroy(): void {
@@ -89,18 +102,10 @@ export class WindowsPanel {
             this._clockParent.remove_child(this._clock);
             this._panel._rightBox.add_child(this._clock);
         }
-        this._dock.setPanelHost(this._panel._centerBox);
-        this._start = new StartMenu(this._dock.launcher, this._panel._centerBox, profile, this._settings);
-        this._dock.setLauncherAction(() => this._start?.toggle());
-        // Meta and GObject typings carry separately versioned GObject packages.
-        this._overlayOriginal = Number(GObject.signal_handler_find(global.display as never, {signalId: 'overlay-key'} as never));
-        if (this._overlayOriginal)
-            GObject.signal_handler_block(global.display as never, this._overlayOriginal);
-        this._overlayHandler = global.display.connect('overlay-key', () => {
-            if (!Main.sessionMode.isLocked) this._start?.toggle();
-        });
+        this._dock?.setPanelHost(this._panel._centerBox);
         this._syncMenus();
         this._position();
+        this._changed();
     }
 
     private _syncMenus(): void {
@@ -133,7 +138,7 @@ export class WindowsPanel {
         if (!this._active) return;
         const monitor = Main.layoutManager.primaryMonitor;
         if (!monitor) return;
-        this._dock.limitPanelWidth(Math.max(80, monitor.width - 2 * this._panel._rightBox.width - 32));
+        this._dock?.limitPanelWidth(Math.max(80, monitor.width - 2 * this._panel._rightBox.width - 32));
         const offset = this._active === 'windows10'
             ? -Math.ceil((monitor.width - this._panel._centerBox.width) / 2) : 0;
         if (this._panel._centerBox.translation_x !== offset)
@@ -143,15 +148,9 @@ export class WindowsPanel {
     private _leave(): void {
         if (!this._active) return;
         this._active = null;
-        this._start?.destroy();
-        this._start = null;
-        if (this._overlayHandler) global.display.disconnect(this._overlayHandler);
-        this._overlayHandler = 0;
-        if (this._overlayOriginal && GObject.signal_handler_is_connected(global.display as never, this._overlayOriginal))
-            GObject.signal_handler_unblock(global.display as never, this._overlayOriginal);
-        this._overlayOriginal = 0;
-        this._dock.setLauncherAction(null);
-        this._dock.setPanelHost(null);
+        this._changed(); // Consumers release borrowed anchors before layout restoration.
+        this._dock?.setPanelHost(null);
+        this._dock = null;
         this._panel._centerBox.translation_x = this._centerTranslation;
         if (this._clock && this._clockParent) {
             this._clock.get_parent()?.remove_child(this._clock);

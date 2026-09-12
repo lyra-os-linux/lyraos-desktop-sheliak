@@ -1,0 +1,13 @@
+{
+  "uuid": "dock@lyraos.com.br",
+  "name": "Lyra Dock",
+  "description": "Lyra Dock — Lyra OS GNOME desktop component",
+  "shell-version": [
+    "48"
+  ],
+  "gettext-domain": "sheliak",
+  "version": 1,
+  "version-name": "2.0.0",
+  "url": "https://github.com/lyra-os-linux/lyraos-desktop-sheliak",
+  "lyra-suite-api": 1
+}

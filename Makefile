@@ -1,28 +1,19 @@
-UUID := sheliak@lyraos.com.br
 PREFIX ?= /usr
-EXTENSIONDIR := $(DESTDIR)$(PREFIX)/share/gnome-shell/extensions/$(UUID)
+SYSCONFDIR ?= /etc
+EXTENSIONDIR := $(DESTDIR)$(PREFIX)/share/gnome-shell/extensions
 
 .PHONY: all check clean dist install pack
-
 all: dist
-
 check:
 	npm run check
-
 dist:
 	npm run build
-
 pack: dist
 	npm run pack
-
 install: dist
 	install -d "$(EXTENSIONDIR)"
-	install -m 0644 dist/extension.js dist/prefs.js dist/prefs.css dist/metadata.json dist/stylesheet.css "$(EXTENSIONDIR)"
-	install -d "$(EXTENSIONDIR)/schemas"
-	install -m 0644 dist/schemas/* "$(EXTENSIONDIR)/schemas"
-	install -d "$(EXTENSIONDIR)/icons"
-	install -m 0644 dist/icons/* "$(EXTENSIONDIR)/icons"
-	cp -a dist/locale "$(EXTENSIONDIR)/locale"
-
+	cp -a dist/extensions/. "$(EXTENSIONDIR)/"
+	install -Dm755 packaging/lyra-shell-suite.py "$(DESTDIR)$(PREFIX)/libexec/lyra/shell-suite"
+	install -Dm644 packaging/lyra-shell-suite.desktop "$(DESTDIR)$(SYSCONFDIR)/xdg/autostart/lyra-shell-suite.desktop"
 clean:
 	npm run clean
