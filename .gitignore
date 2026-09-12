@@ -1,5 +1,8 @@
-node_modules/
+/node_modules
 dist/
 *.zip
 *.tar.zst
 npm-debug.log*
+
+__pycache__/
+*.py[cod]

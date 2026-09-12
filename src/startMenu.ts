@@ -17,7 +17,7 @@ import {AppContextMenu} from './contextMenu.js';
 import {layoutTiles, type TileSize} from './tileLayout.js';
 import {TileSizes} from './tileSizes.js';
 
-/** Native application launcher, with separate Windows 10/11 compositions. */
+/** Native application launcher, with separate Lyra Clássico/11 compositions. */
 export class StartMenu {
     readonly menu: PopupMenu.PopupMenu;
     readonly entry: St.Entry;

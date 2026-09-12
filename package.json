@@ -1,16 +1,16 @@
 {
   "name": "sheliak",
-  "version": "1.16.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Dock nativo do Lyra OS para GNOME Shell 48",
+  "description": "Lyra GNOME extension suite",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
     "clean": "rm -rf dist",
     "build": "node scripts/build.mjs",
     "check": "tsc --noEmit",
-    "test": "npm run build && node tests/test-i18n.mjs && node --test tests/test-top-bar.mjs tests/test-dock-magnifier.mjs tests/test-dock-layout.mjs tests/test-app-activation.mjs tests/test-profile-favorites.mjs tests/test-tile-layout.mjs",
-    "pack": "npm run build && cd dist && zip -qr ../sheliak@lyraos.com.br.zip ."
+    "test": "npm run build && node tests/test-i18n.mjs && node tests/test-provider.mjs && python3 -m unittest discover -s tests -p \"test_suite*.py\" -v && node --test tests/test-top-bar.mjs tests/test-dock-magnifier.mjs tests/test-dock-layout.mjs tests/test-app-activation.mjs tests/test-profile-favorites.mjs tests/test-tile-layout.mjs",
+    "pack": "npm run build && tar --zstd -cf sheliak-extensions.tar.zst -C dist/extensions ."
   },
   "devDependencies": {
     "@girs/gnome-shell": "^48.0.0",

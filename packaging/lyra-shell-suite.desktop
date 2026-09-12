@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Lyra desktop migration
+Exec=/usr/libexec/lyra/shell-suite migrate
+OnlyShowIn=GNOME;
+NoDisplay=true
+X-GNOME-Autostart-Phase=Applications
+X-GNOME-AutoRestart=false

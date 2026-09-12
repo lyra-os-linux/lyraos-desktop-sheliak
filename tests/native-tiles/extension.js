@@ -1,3 +1,4 @@
+import {suiteFixture} from './fixture.js';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -77,7 +78,7 @@ export default class TilesTest extends Extension {
     }
     async run() {
         await wait(3500); Main.overview.hide(); await wait(300);
-        this.ext = Main.extensionManager.lookup('sheliak@lyraos.com.br').stateObj;
+        this.ext = suiteFixture();
         this.settings = this.ext._settings;
         const seat = Clutter.get_default_backend().get_default_seat();
         this.keyboard = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
@@ -133,11 +134,11 @@ export default class TilesTest extends Extension {
         this.tile(ids[0]).close();
         await this.profile('windows10');
         this.check('sizes survive profile switch', same(this.settings.get_value('windows10-tile-sizes').deep_unpack(), saved));
-        this.start().menu.close(); this.ext.disable(); await wait(200); this.ext.enable(); await wait(400);
+        this.start().menu.close(); await this.ext.disable(); await wait(200); await this.ext.enable(); await wait(400);
         this.settings = this.ext._settings; this.start().menu.open(); await wait(200);
         this.check('sizes survive extension restart', this.tile(ids[0]).menu.sourceActor.has_style_class_name('tile-large'));
         this.check('GNOME favorites preserved', same(global.settings.get_strv('favorite-apps'), globalBefore));
-        this.ext.disable();
+        await this.ext.disable();
         this.check('all menus release grabs', Main.modalCount === 0, Main.modalCount);
     }
 }

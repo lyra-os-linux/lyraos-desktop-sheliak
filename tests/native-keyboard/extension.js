@@ -1,3 +1,4 @@
+import {suiteFixture} from './fixture.js';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -46,7 +47,7 @@ export default class KeyboardTest extends Extension {
         await wait(1800);
         Main.overview.hide();
         await wait(500);
-        this.ext = Main.extensionManager.lookup('sheliak@lyraos.com.br').stateObj;
+        this.ext = suiteFixture();
         if (!this.ext?._dock) throw Error('Sheliak failed to load');
         const seat = global.stage.get_context().get_backend().get_default_seat();
         this.keyboard = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
@@ -196,7 +197,7 @@ export default class KeyboardTest extends Extension {
                 this.check(`${profile} profile has reachable dock focus`,
                     !!item && currentDock.actor.contains(global.stage.get_key_focus()));
             }
-            this.ext.disable();
+            await this.ext.disable();
             this.check('disable removes dock focus group', !Main.ctrlAltTabManager._items.some(item => item.root === dock.actor));
         } finally { prototype.activate = activate; global.stage.disconnect(eventId); }
     }

@@ -21,11 +21,12 @@ import {SignalTracker} from './signals.js';
 import {shellIsStartingUp} from './shellCompat.js';
 import {DockSide, TooltipManager} from './tooltip.js';
 import {TrashIcon} from './trashIcon.js';
+import type {DockPanelIntegration, DockLauncherIntegration} from './contracts/dockIntegration.js';
 
 const TRIGGER_HEIGHT = 2;
 const SETTINGS_SCHEMA = 'org.gnome.shell.extensions.sheliak';
 
-export class Dock {
+export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     readonly actor: St.BoxLayout;
     private _background: St.BoxLayout;
     private _appsBox: St.BoxLayout;
@@ -52,6 +53,8 @@ export class Dock {
     private _redisplayTimeoutId = 0;
     private _laidOutOnce = false;
     private _chromeAdded = false;
+    private _chromeOptions = '';
+    private _triggerFullscreen: boolean | null = null;
     private _settings: Gio.Settings;
     private _startupCompleteId = 0;
     private _dragPlaceholder: St.Widget | null = null;
@@ -73,9 +76,11 @@ export class Dock {
     }
 
     setPanelHost(host: St.BoxLayout | null): void {
+        // Keep the trigger hidden while detached; showing it can request an
+        // allocation synchronously before addChrome attaches it to the stage.
+        this._revealTrigger.hide();
         if (this._chromeAdded) {
             Main.layoutManager.removeChrome(this.actor);
-            Main.layoutManager.removeChrome(this._revealTrigger);
             this._chromeAdded = false;
         }
         if (this._panelScroll) {
@@ -95,10 +100,10 @@ export class Dock {
             this._hidden = false;
         } else {
             this._background.set_child_at_index(this._showApps.actor, this._background.get_children().length - 1);
-            this._revealTrigger.show();
             for (const style of ['windows-taskbar', 'windows10', 'windows11'])
                 this.actor.remove_style_class_name(style);
             this._syncChrome();
+            this._revealTrigger.show();
         }
         this._syncPanelColors();
         this._relayout();
@@ -162,7 +167,7 @@ export class Dock {
             (desktopId, count) => this._onLauncherEntryChanged(desktopId, count));
 
         this._revealTrigger = new St.Widget({
-            name: 'sheliakDockTrigger',
+            name: 'lyraDockTrigger',
             reactive: true,
             can_focus: false,
             opacity: 0,
@@ -173,7 +178,7 @@ export class Dock {
         // Expose the dock through GNOME's Ctrl+Alt+Tab switcher and keep it
         // revealed while keyboard/assistive focus is inside it. The manager
         // unregisters the group automatically when the actor is destroyed.
-        Main.ctrlAltTabManager.addGroup(this.actor, 'Sheliak', 'view-app-grid-symbolic');
+        Main.ctrlAltTabManager.addGroup(this.actor, 'Lyra Dock', 'view-app-grid-symbolic');
         this._signals.connect(global.stage, 'notify::key-focus',
             () => this._syncVisibility());
 
@@ -309,8 +314,9 @@ export class Dock {
         this._showApps.destroy();
         this._tooltip.destroy();
         Main.layoutManager.removeChrome(this.actor);
-        Main.layoutManager.removeChrome(this._revealTrigger);
         this.actor.destroy();
+        // LayoutManager untracks a destroyed chrome actor. Keep it on stage
+        // until destruction so Clutter never allocates a detached trigger.
         this._revealTrigger.destroy();
     }
 
@@ -728,6 +734,7 @@ export class Dock {
             this._laidOutOnce = true;
         }
 
+        if (!this._revealTrigger.get_stage()) return;
         if (position === 'top') {
             this._revealTrigger.set_position(monitor.x, monitor.y);
             this._revealTrigger.set_size(monitor.width, TRIGGER_HEIGHT);
@@ -751,21 +758,27 @@ export class Dock {
 
     private _syncChrome(): void {
         if (this._panelScroll) return;
+        const trackFullscreen = this._settings.get_boolean('fullscreen-hide');
+        const affectsStruts = windowsProfile(this._settings) !== null;
+        const options = `${trackFullscreen}:${affectsStruts}`;
+        if (this._chromeAdded && this._chromeOptions === options) return;
+        this._chromeOptions = options;
         if (this._chromeAdded) {
             Main.layoutManager.removeChrome(this.actor);
-            Main.layoutManager.removeChrome(this._revealTrigger);
         }
-        const trackFullscreen = this._settings.get_boolean('fullscreen-hide');
         Main.layoutManager.addChrome(this.actor, {
             affectsInputRegion: true,
-            affectsStruts: false,
+            affectsStruts,
             trackFullscreen,
         });
-        Main.layoutManager.addChrome(this._revealTrigger, {
-            affectsInputRegion: true,
-            affectsStruts: false,
-            trackFullscreen,
-        });
+        if (this._triggerFullscreen !== trackFullscreen) {
+            if (this._triggerFullscreen !== null)
+                Main.layoutManager.removeChrome(this._revealTrigger);
+            Main.layoutManager.addChrome(this._revealTrigger, {
+                affectsInputRegion: true, affectsStruts: false, trackFullscreen,
+            });
+            this._triggerFullscreen = trackFullscreen;
+        }
         this._chromeAdded = true;
     }
 

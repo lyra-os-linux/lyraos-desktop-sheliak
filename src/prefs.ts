@@ -220,10 +220,11 @@ export default class SheliakPreferences extends ExtensionPreferences {
         const about = new Adw.PreferencesPage({
             name: 'about', title: _('About'), icon_name: 'help-about-symbolic',
         });
-        const aboutGroup = new Adw.PreferencesGroup({title: 'Sheliak'});
-        const aboutRow = new Adw.ActionRow({title: _('About Sheliak'), subtitle: _('Website, issue reporting, credits, and legal information'), activatable: true});
+        const componentName = String(this.metadata.name);
+        const aboutGroup = new Adw.PreferencesGroup({title: componentName});
+        const aboutRow = new Adw.ActionRow({title: _('About'), subtitle: _('Website, issue reporting, credits, and legal information'), activatable: true});
         aboutRow.connect('activated', () => showAboutDialog(window,
-            String(this.metadata['version-name'] ?? this.metadata.version)));
+            String(this.metadata['version-name'] ?? this.metadata.version), componentName));
         aboutGroup.add(aboutRow);
         about.add(aboutGroup);
 
@@ -235,9 +236,9 @@ export default class SheliakPreferences extends ExtensionPreferences {
     }
 }
 
-function showAboutDialog(window: Adw.PreferencesWindow, version: string): void {
+function showAboutDialog(window: Adw.PreferencesWindow, version: string, name: string): void {
     const dialog = new Adw.AboutDialog({
-        application_name: 'Sheliak',
+        application_name: name,
         application_icon: 'folder-download-symbolic',
         developer_name: 'Lyra OS',
         version,
