@@ -6,7 +6,7 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import type {Dock} from './dock.js';
+import type {DockPanelIntegration, DockLauncherIntegration} from './contracts/dockIntegration.js';
 import {windowsProfile, type WindowsProfile} from './desktopProfile.js';
 import {SignalTracker} from './signals.js';
 import {StartMenu} from './startMenu.js';
@@ -41,7 +41,8 @@ export class WindowsPanel {
     private _barrierOriginal: (() => void) | null = null;
     private _barrierOverride: (() => void) | null = null;
 
-    constructor(private _settings: Gio.Settings, private _dock: Dock) {
+    constructor(private _settings: Gio.Settings,
+        private _dock: DockPanelIntegration & DockLauncherIntegration) {
         this._signals.connect(_settings, 'changed::desktop-profile', () => this._sync());
         this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._position());
         for (const property of ['x', 'y', 'width', 'height'])

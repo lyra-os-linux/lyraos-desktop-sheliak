@@ -1,0 +1,379 @@
+{
+  "format_version": 1,
+  "status": "planned_ownership_not_extracted",
+  "baseline_commit": "12ce13dc75aeaecadb0067f5d3c6d7ad8b93900c",
+  "schema_id": "org.gnome.shell.extensions.sheliak",
+  "schema_path": "/org/gnome/shell/extensions/sheliak/",
+  "keys": [
+    {
+      "key": "windows10-tile-sizes",
+      "type": "a{ss}",
+      "default": "{}",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "windows10-panel-apps",
+      "type": "as",
+      "default": "['vega.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "windows11-panel-apps",
+      "type": "as",
+      "default": "['vega.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "windows10-menu-apps",
+      "type": "as",
+      "default": "[]",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "windows11-menu-apps",
+      "type": "as",
+      "default": "[]",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "desktop-profile",
+      "type": "s",
+      "default": "'lyra'",
+      "owner": "layouts",
+      "additional_consumers": [
+        "dock",
+        "panel",
+        "menus",
+        "search",
+        "animations"
+      ],
+      "migration": "preserve"
+    },
+    {
+      "key": "macos-profile-supported",
+      "type": "b",
+      "default": "true",
+      "owner": "layouts",
+      "additional_consumers": [],
+      "migration": "preserve_legacy"
+    },
+    {
+      "key": "desktop-profile-settings",
+      "type": "s",
+      "default": "''",
+      "owner": "layouts",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "lyra-profile-settings",
+      "type": "s",
+      "default": "''",
+      "owner": "layouts",
+      "additional_consumers": [],
+      "migration": "preserve_legacy"
+    },
+    {
+      "key": "position",
+      "type": "s",
+      "default": "'left'",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "hide-mode",
+      "type": "s",
+      "default": "'intelligent'",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "autohide",
+      "type": "b",
+      "default": "true",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve_legacy"
+    },
+    {
+      "key": "hide-delay",
+      "type": "u",
+      "default": "400",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "icon-size",
+      "type": "u",
+      "default": "40",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "edge-margin",
+      "type": "u",
+      "default": "8",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "animation",
+      "type": "b",
+      "default": "true",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "minimize-animation",
+      "type": "s",
+      "default": "'zoom'",
+      "owner": "animations",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "extend-to-edges",
+      "type": "b",
+      "default": "false",
+      "owner": "dock",
+      "additional_consumers": [
+        "panel"
+      ],
+      "migration": "preserve"
+    },
+    {
+      "key": "content-alignment",
+      "type": "s",
+      "default": "'center'",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "extended-content-alignment",
+      "type": "s",
+      "default": "'start'",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-running",
+      "type": "b",
+      "default": "true",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "running-apps-position",
+      "type": "s",
+      "default": "'end'",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-trash",
+      "type": "b",
+      "default": "true",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-apps-button",
+      "type": "b",
+      "default": "true",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "fullscreen-hide",
+      "type": "b",
+      "default": "true",
+      "owner": "dock",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "panel-height",
+      "type": "u",
+      "default": "32",
+      "owner": "panel",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "floating-panel",
+      "type": "b",
+      "default": "true",
+      "owner": "panel",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "panel-margin",
+      "type": "u",
+      "default": "8",
+      "owner": "panel",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-clock",
+      "type": "b",
+      "default": "true",
+      "owner": "panel",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-panel-indicators",
+      "type": "b",
+      "default": "true",
+      "owner": "panel",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-applications-menu",
+      "type": "b",
+      "default": "true",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-places-menu",
+      "type": "b",
+      "default": "true",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-system-menu",
+      "type": "b",
+      "default": "true",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-system-about",
+      "type": "b",
+      "default": "true",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-search-menu",
+      "type": "b",
+      "default": "true",
+      "owner": "search",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "hide-workspace-button",
+      "type": "b",
+      "default": "true",
+      "owner": "panel",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "panel-menu-position",
+      "type": "s",
+      "default": "'left'",
+      "owner": "layouts",
+      "additional_consumers": [
+        "menus",
+        "search"
+      ],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-application-icons",
+      "type": "b",
+      "default": "true",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "sort-applications-menu",
+      "type": "b",
+      "default": "true",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "open-application-submenus-sideways",
+      "type": "b",
+      "default": "false",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-place-bookmarks",
+      "type": "b",
+      "default": "true",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    },
+    {
+      "key": "show-place-volumes",
+      "type": "b",
+      "default": "true",
+      "owner": "menus",
+      "additional_consumers": [],
+      "migration": "preserve"
+    }
+  ],
+  "external_settings": [
+    {
+      "schema": "org.gnome.shell",
+      "keys": [
+        "favorite-apps"
+      ],
+      "policy": "preserve existing favorites; seed menu favorites only when unset"
+    },
+    {
+      "schema": "org.gnome.shell",
+      "keys": [
+        "enabled-extensions",
+        "disabled-extensions",
+        "disable-user-extensions"
+      ],
+      "policy": "session coordinator only; preserve unrelated entries and global disable"
+    },
+    {
+      "schema": "org.gnome.shell.extensions.ding",
+      "policy": "inventory separately against pinned upstream before LDI migration"
+    }
+  ],
+  "consumer_scope": "Planned cross-component semantic consumers, not an exhaustive scan of current reads; Vega/preferences writers excluded."
+}

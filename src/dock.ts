@@ -21,11 +21,12 @@ import {SignalTracker} from './signals.js';
 import {shellIsStartingUp} from './shellCompat.js';
 import {DockSide, TooltipManager} from './tooltip.js';
 import {TrashIcon} from './trashIcon.js';
+import type {DockPanelIntegration, DockLauncherIntegration} from './contracts/dockIntegration.js';
 
 const TRIGGER_HEIGHT = 2;
 const SETTINGS_SCHEMA = 'org.gnome.shell.extensions.sheliak';
 
-export class Dock {
+export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     readonly actor: St.BoxLayout;
     private _background: St.BoxLayout;
     private _appsBox: St.BoxLayout;
