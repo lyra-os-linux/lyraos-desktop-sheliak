@@ -162,21 +162,21 @@ As preferências Lyra anteriores ficam em `lyra-profile-settings` para restaura�
 ao voltar. Estender o dock por si só não seleciona Ubuntu nem esconde menus ou
 busca; essas alterações pertencem à seleção do perfil no Vega 5.1.31 ou posterior.
 
-### Perfis Windows 10 e Windows 11
+### Perfis Lyra Clássico e Lyra Central
 
 A partir de 1.13.0, os perfis explícitos `windows10` e `windows11` levam o painel
 nativo ao rodapé do monitor principal. O dock passa a integrar esse painel,
-com aplicativos à esquerda no Windows 10 ou centralizados no Windows 11. O
+com aplicativos à esquerda no Lyra Clássico ou centralizados no Lyra Central. O
 espaço do painel fica reservado para as janelas e os indicadores de execução
 usam o formato de barra de tarefas, sem ampliação dos ícones ao passar o mouse.
 
 O botão L e a tecla Super abrem um menu próprio: lista e blocos de favoritos no
-Windows 10, pesquisa e grade de fixados no Windows 11. Ambos permitem listar,
+Lyra Clássico, pesquisa e grade de fixados no Lyra Central. Ambos permitem listar,
 buscar e abrir aplicativos, acessar configurações, bloquear e desligar com a
 confirmação nativa. Os ícones mantêm a identidade dos aplicativos instalados.
 
 A partir de 1.14.0, os aplicativos fixados no painel e os favoritos dos cards
-do Iniciar são listas independentes, também separadas entre Windows 10 e 11.
+do Iniciar são listas independentes, também separadas entre Lyra Clássico e 11.
 O painel começa com Vega, Arquivos e Firefox. Os cards recebem uma cópia dos
 favoritos atuais do GNOME na primeira ativação de cada perfil. Depois disso,
 alterar qualquer uma das quatro listas não modifica as demais nem os favoritos
@@ -196,13 +196,13 @@ Teste nativo em compositor GNOME 48 isolado (não acessa a sessão pessoal):
 O teste cobre menus por mouse/teclado, arrastar, migração, listas vazias,
 independência dos perfis e reativação da extensão; aceita também en_US/es_ES.
 
-No Windows 10, a versão 1.15.0 permite escolher **Redimensionar → Pequeno,
+No Lyra Clássico, a versão 1.15.0 permite escolher **Redimensionar → Pequeno,
 Médio, Largo ou Grande** pelo botão direito/Menu/Shift+F10 em cada card do
 Iniciar. Médio mantém o tamanho anterior; Pequeno exibe apenas o ícone, Largo
 ocupa duas larguras médias, e Grande ocupa duas larguras e duas alturas médias.
 Os blocos se reorganizam sem sobreposição e continuam acessíveis pela rolagem.
 As escolhas são salvas por aplicativo em `windows10-tile-sizes`, inclusive ao
-remover e fixar novamente um favorito. O Windows 11 mantém seu tamanho uniforme.
+remover e fixar novamente um favorito. O Lyra Central mantém seu tamanho uniforme.
 Teste nativo: `python3 tests/native-pins/run.py --probe tests/native-tiles/extension.js
 --output /tmp/sheliak-tiles-test --language pt_BR`.
 
@@ -221,7 +221,7 @@ atrás de um ator de extensão. A v1 usa transparência e sombra nativas; não u
 
 GPL-3.0-or-later.
 
-### MacOS X and desktop icons
+### Lyra Flutuante and desktop icons
 
 Sheliak 1.16.0 advertises `macos-profile-supported` for Vega GTK 5.1.34. The
 `macos` profile displays only the Lyra application logo at the left of the top

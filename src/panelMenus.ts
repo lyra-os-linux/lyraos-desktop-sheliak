@@ -169,7 +169,7 @@ class ApplicationsIndicator {
                 y_align: Clutter.ActorAlign.CENTER,
             });
         box.add_child(this._icon);
-        // MacOS X keeps only the Lyra logo in the top-left application menu.
+        // Lyra Flutuante keeps only the Lyra logo in the top-left application menu.
         // The button retains its translated accessible name.
         if (settings.get_string('desktop-profile') !== 'macos') {
             box.add_child(new St.Label({
