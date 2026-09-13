@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import types
 import unittest
+from unittest.mock import patch, Mock
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('suite', ROOT / 'packaging/lyra-shell-suite.py')
@@ -35,6 +36,7 @@ class Settings:
 class SuiteMigrationTests(unittest.TestCase):
     def setUp(self):
         self.session = suite.Session.__new__(suite.Session)
+        self.session.GLib = types.SimpleNamespace(Error=RuntimeError)
         self.session.Gio = types.SimpleNamespace(Settings=types.SimpleNamespace(sync=lambda: None))
         self.session.shell = Settings(**{
             'enabled-extensions': ['other@example.org', *suite.UUIDS.values()],
@@ -116,6 +118,31 @@ class SuiteMigrationTests(unittest.TestCase):
         self.assertEqual(s.lists(), before)
         s.runtime_extensions = lambda: {uuid: {'state': 2} for uuid in suite.UUIDS.values()}
         s.ensure_runtime_ready()
+
+    def test_login_waits_for_timeout_and_discovery_without_changing_preferences(self):
+        s = self.session
+        before = s.lists()
+        s.runtime_extensions = Mock(side_effect=[RuntimeError('timeout'), {},
+            {uuid: {'state': 6} for uuid in suite.UUIDS.values()}])
+        clock = [0.0]
+        with patch.object(suite.time, 'monotonic', side_effect=lambda: clock[0]), \
+                patch.object(suite.time, 'sleep', side_effect=lambda seconds: clock.__setitem__(0, clock[0]+seconds)):
+            s.ensure_runtime_ready(wait_seconds=30)
+        self.assertEqual(clock[0], 2)
+        self.assertEqual(s.lists(), before)
+
+    def test_login_wait_is_bounded_and_interactive_calls_do_not_retry(self):
+        s = self.session
+        before = s.lists()
+        s.runtime_extensions = Mock(side_effect=RuntimeError('timeout'))
+        clock = [0.0]
+        with patch.object(suite.time, 'monotonic', side_effect=lambda: clock[0]), \
+                patch.object(suite.time, 'sleep', side_effect=lambda seconds: clock.__setitem__(0, clock[0]+seconds)) as sleep:
+            with self.assertRaisesRegex(RuntimeError, 'timeout'): s.ensure_runtime_ready()
+            sleep.assert_not_called()
+            with self.assertRaisesRegex(RuntimeError, 'timeout'): s.ensure_runtime_ready(wait_seconds=30)
+        self.assertEqual(clock[0], 30)
+        self.assertEqual(s.lists(), before)
 
     def test_vanilla_requires_selecting_a_layout_before_enabling_shell_components(self):
         self.session.apply('vanilla')

@@ -1,5 +1,5 @@
 Name:           sheliak
-Version:        2.0.0
+Version:        2.0.1
 Release:        0
 Summary:        Lyra GNOME desktop extension suite
 License:        GPL-3.0-only AND GPL-3.0-or-later

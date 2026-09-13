@@ -46,6 +46,14 @@ export default class TopbarTest extends Extension {
         await screenshot.screenshot(false, stream);
         stream.close(null);
     }
+    searchOrder(name) {
+        const search = Main.panel.statusArea['sheliak-search']?.container;
+        const children = search?.get_parent()?.get_children() ?? [];
+        const menus = ['sheliak-applications', 'sheliak-places', 'sheliak-system']
+            .map(id => Main.panel.statusArea[id]?.container).filter(Boolean);
+        this.check(name, !!search && menus.length > 0 && menus.every(menu =>
+            children.indexOf(menu) >= 0 && children.indexOf(menu) < children.indexOf(search)));
+    }
     sample(name) {
         const date = Main.panel.statusArea.dateMenu;
         const quick = Main.panel.statusArea.quickSettings;
@@ -87,12 +95,25 @@ export default class TopbarTest extends Extension {
         this.pointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
         await this.key(Clutter.KEY_Shift_L);
         Main.messageTray._banner?.hide();
+        this.searchOrder('search follows menus at startup');
+        const shellSettings = new Gio.Settings({schema_id: 'org.gnome.shell'});
+        for (const role of ['menus', 'search']) {
+            const id = `${role}@lyraos.com.br`;
+            const enabled = shellSettings.get_strv('enabled-extensions');
+            shellSettings.set_strv('enabled-extensions', enabled.filter(uuid => uuid !== id));
+            await wait(400);
+            shellSettings.set_strv('enabled-extensions', [...enabled.filter(uuid => uuid !== id), id]);
+            await wait(500);
+            this.searchOrder(`search follows menus after re-enabling ${role}`);
+        }
+        this.ext = suiteFixture();
         this.sample('initial left allocation');
         await this.capture('left');
         for (const position of ['center', 'right', 'left']) {
             this.ext._settings.set_string('panel-menu-position', position);
             await wait(400);
             this.sample(position+' allocation');
+            this.searchOrder(`search follows menus in ${position}`);
         }
         const search = this.ext._panelMenus._search;
         search.button.grab_key_focus();
