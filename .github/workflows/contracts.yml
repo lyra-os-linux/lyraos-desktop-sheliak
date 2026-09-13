@@ -20,7 +20,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gettext libglib2.0-bin locales rpm
+          sudo apt-get install -y gettext libglib2.0-bin locales rpm python3-gi dbus-daemon gnome-shell-common
           for locale in en_US pt_BR es_ES fr_FR; do
             sudo localedef -i "$locale" -f UTF-8 "$locale.UTF-8"
           done

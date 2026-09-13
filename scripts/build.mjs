@@ -44,7 +44,7 @@ for (const catalogFile of await readdir(new URL('../po/', import.meta.url))) {
         .map(([msgid, msgstr]) => `msgid "${escapePo(msgid)}"\nmsgstr "${escapePo(msgstr)}"\n`)
         .join('\n');
     const po = `msgid ""\nmsgstr ""\n` +
-        `"Project-Id-Version: Sheliak 2.0.0\\n"\n` +
+        `"Project-Id-Version: Sheliak 2.0.1\\n"\n` +
         `"Language: ${language}\\n"\n` +
         `"Content-Type: text/plain; charset=UTF-8\\n"\n` +
         `"Content-Transfer-Encoding: 8bit\\n"\n\n${entries}`;

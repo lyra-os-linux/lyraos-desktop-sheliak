@@ -118,10 +118,22 @@ class Session:
             'org.gnome.Shell.Extensions', 'ListExtensions', None, None,
             self.Gio.DBusCallFlags.NONE, 1000, None).unpack()[0]
 
-    def ensure_runtime_ready(self):
-        states = self.runtime_extensions()
-        if states is not None and not set(UUIDS.values()).issubset(states):
-            raise ValueError('The new Lyra extensions are not loaded yet; sign in again')
+    def ensure_runtime_ready(self, wait_seconds=0):
+        deadline = time.monotonic() + wait_seconds
+        while True:
+            try:
+                states = self.runtime_extensions()
+                if states is None or set(UUIDS.values()).issubset(states):
+                    return
+                failure = ValueError('The new Lyra extensions are not loaded yet; sign in again')
+            except self.GLib.Error as error:
+                failure = error
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise failure
+            # Only the login entry point waits. Interactive profile operations
+            # remain immediate, and no preferences are changed until ready.
+            time.sleep(min(1, remaining))
 
     def wait_legacy_disabled(self, uuids):
         for uuid in uuids:
@@ -236,7 +248,7 @@ class Session:
         self.Gio.Settings.sync()
         journal.unlink()
 
-    def migrate(self):
+    def migrate(self, wait_for_shell=False):
         self.recover_profile()
         self.recover_transition()
         stamp = self.state_dir / 'migration-v1.json'
@@ -246,7 +258,7 @@ class Session:
             self.installed(role)
         # A package upgrade does not make new UUIDs discoverable in an already
         # running Shell. Keep the old desktop active until a fresh login.
-        self.ensure_runtime_ready()
+        self.ensure_runtime_ready(wait_seconds=30 if wait_for_shell else 0)
         enabled, disabled = self.lists()
         if stamp.exists():
             record = json.loads(stamp.read_text())
@@ -395,7 +407,11 @@ def main():
     parser.add_argument('action', choices=['status', 'migrate', 'apply', 'toggle', 'begin-profile', 'commit-profile', 'abort-profile', 'rollback'])
     parser.add_argument('target', nargs='?')
     parser.add_argument('value', nargs='?', choices=['on', 'off'])
+    parser.add_argument('--wait-for-shell', action='store_true',
+        help='Allow up to 30 seconds for GNOME startup before migration')
     args = parser.parse_args()
+    if args.wait_for_shell and args.action != 'migrate':
+        parser.error('--wait-for-shell is only valid with migrate')
     if os.geteuid() == 0:
         parser.error('Run in the desktop user session, never as root')
     if args.action in ('apply', 'begin-profile', 'commit-profile', 'abort-profile') and args.target not in PROFILES:
@@ -406,7 +422,7 @@ def main():
     with (session.state_dir / 'session.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if args.action == 'migrate':
-            session.migrate()
+            session.migrate(wait_for_shell=args.wait_for_shell)
         elif args.action == 'apply':
             session.apply(args.target)
         elif args.action == 'rollback':

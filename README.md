@@ -38,8 +38,9 @@ npm test
 
 ## Migração por usuário
 
-O auxiliar `/usr/libexec/lyra/shell-suite migrate`, executado no login GNOME,
-preserva preferências e substitui os UUIDs antigos na sessão. O snapshot fica
+O auxiliar `/usr/libexec/lyra/shell-suite migrate --wait-for-shell`, executado no login GNOME,
+aguarda até 30 segundos pelo serviço do GNOME no login, preserva preferências
+e substitui os UUIDs antigos na sessão. A espera ocorre antes de migrar os UUIDs e não é usada nas operações interativas do Vega. O snapshot fica
 em `$XDG_STATE_HOME/lyra/shell-suite/migration-v1.json` (por padrão,
 `~/.local/state/lyra/shell-suite/`). Nunca executar esse auxiliar como root.
 

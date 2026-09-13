@@ -686,6 +686,11 @@ export class PanelMenus {
             this._signals.connect(actor, 'notify::allocation', () => this._queueLayout());
             this._signals.connect(actor, 'style-changed', () => this._queueLayout());
         }
+        for (const box of [panel._leftBox, panel._centerBox, panel._rightBox]) {
+            // Menus and search can be enabled or rebuilt independently.
+            this._signals.connect(box, 'child-added', () => this._queueLayout());
+            this._signals.connect(box, 'child-removed', () => this._queueLayout());
+        }
         this._signals.connect(panel, 'queue-relayout', () => this._queueLayout());
         this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._queueLayout());
         this._signals.connect(global.display, 'workareas-changed', () => this._queueLayout());
@@ -745,7 +750,21 @@ export class PanelMenus {
         });
     }
 
+    private _syncSearchOrder(): void {
+        const search = this._search?.button.container;
+        const box = search?.get_parent();
+        if (!search || !box) return;
+        const area = Main.panel.statusArea as unknown as Record<string, PanelMenu.Button>;
+        const menus = ['sheliak-applications', 'sheliak-places', 'sheliak-system']
+            .map(id => area[id]?.container).filter(actor => actor?.get_parent() === box);
+        const children = box.get_children();
+        const last = children.filter(child => menus.some(menu => menu === child)).at(-1);
+        if (last && children[children.indexOf(last) + 1] !== search)
+            box.set_child_above_sibling(search, last);
+    }
+
     private _syncLayout(): void {
+        this._syncSearchOrder();
         const panel = Main.panel as unknown as St.Widget & {
             _leftBox: St.BoxLayout; _centerBox: St.BoxLayout; _rightBox: St.BoxLayout;
         };
