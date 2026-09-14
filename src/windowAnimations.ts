@@ -1,11 +1,11 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
-import GObject from 'gi://GObject';
 import Meta from 'gi://Meta';
 import Mtk from 'gi://Mtk';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import {animationCapabilities, unavailable} from './shellCompat.js';
 
 const ZOOM_DURATION = 260;
 const FADE_DURATION = 200;
@@ -126,56 +126,44 @@ class TransformAnimation implements ActiveWindowAnimation {
 }
 
 export class WindowAnimationManager {
-    private _shellwm = global.window_manager;
-    private _originalCompletedMinimize = this._shellwm.completed_minimize;
-    private _originalCompletedUnminimize = this._shellwm.completed_unminimize;
+    private _capabilities = animationCapabilities();
+    private _shellwm = this._capabilities?.shellwm;
+    private _originalCompletedMinimize = this._shellwm?.completed_minimize;
+    private _originalCompletedUnminimize = this._shellwm?.completed_unminimize;
     private _nativeSignalIds: number[] = [];
     private _signalIds: number[] = [];
     private _activeAnimations = new Map<Meta.WindowActor, ActiveWindowAnimation>();
 
     constructor(private _settings: Gio.Settings) {
+        if (!this._capabilities || !this._shellwm) return;
         // Migrate the removed mode for existing installations.
         if (this._settings.get_string('minimize-animation') === 'magic-lamp')
             this._settings.set_string('minimize-animation', 'zoom');
 
-        // Main.wm connects its minimize handlers before extensions are loaded.
-        // Block those exact handlers while Sheliak owns the animations; merely
-        // replacing methods on Main.wm does not change callbacks that GObject
-        // has already connected.
-        for (const signalId of ['minimize', 'unminimize']) {
-            const handlerId = Number(GObject.signal_handler_find(
-                this._shellwm as never, {signalId} as never));
-            if (!handlerId) {
-                console.error(`Sheliak: manipulador nativo de ${signalId} não encontrado`);
-                for (const id of this._nativeSignalIds)
-                    this._shellwm.unblock_signal_handler(id);
-                this._nativeSignalIds = [];
-                return;
+        // Resolve both handlers before blocking either one. If connecting a
+        // replacement fails, release everything acquired so far.
+        try {
+            for (const id of this._capabilities.ids) {
+                this._shellwm.block_signal_handler(id);
+                this._nativeSignalIds.push(id);
             }
-            if (this._nativeSignalIds.includes(handlerId) ||
-                !GObject.signal_handler_is_connected(this._shellwm as never, handlerId)) {
-                console.error(`Sheliak: manipulador nativo de ${signalId} não é seguro; usando animação nativa`);
-                for (const id of this._nativeSignalIds)
-                    this._shellwm.unblock_signal_handler(id);
-                this._nativeSignalIds = [];
-                return;
-            }
-            this._shellwm.block_signal_handler(handlerId);
-            this._nativeSignalIds.push(handlerId);
+            this._signalIds.push(this._shellwm.connect('minimize', (_wm, actor) => {
+                this._animate(actor, true);
+            }));
+            this._signalIds.push(this._shellwm.connect('unminimize', (_wm, actor) => {
+                this._animate(actor, false);
+            }));
+            this._signalIds.push(this._shellwm.connect('kill-window-effects', (_wm, actor) => {
+                this._destroyActorEffects(actor);
+            }));
+        } catch (error) {
+            this.destroy();
+            unavailable(`compositor animation activation: ${error}`);
         }
-
-        this._signalIds.push(this._shellwm.connect('minimize', (_wm, actor) => {
-            this._animate(actor, true);
-        }));
-        this._signalIds.push(this._shellwm.connect('unminimize', (_wm, actor) => {
-            this._animate(actor, false);
-        }));
-        this._signalIds.push(this._shellwm.connect('kill-window-effects', (_wm, actor) => {
-            this._destroyActorEffects(actor);
-        }));
     }
 
     private _animate(actor: Meta.WindowActor, minimizing: boolean): void {
+        if (!this._shellwm || !this._originalCompletedMinimize || !this._originalCompletedUnminimize) return;
         const shellComplete = minimizing
             ? this._originalCompletedMinimize.bind(this._shellwm)
             : this._originalCompletedUnminimize.bind(this._shellwm);
@@ -239,6 +227,7 @@ export class WindowAnimationManager {
     }
 
     destroy(): void {
+        if (!this._shellwm) return;
         for (const id of this._signalIds)
             this._shellwm.disconnect(id);
         this._signalIds = [];

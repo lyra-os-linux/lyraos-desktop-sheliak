@@ -8,16 +8,12 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import type {DockPanelIntegration} from './contracts/dockIntegration.js';
 import {windowsProfile, type WindowsProfile} from './desktopProfile.js';
 import {SignalTracker} from './signals.js';
+import {bottomPanelCapabilities, popupArrow, type PopupArrow} from './shellCompat.js';
+import {OwnedValue} from './ownedState.js';
+import {PanelStyleClass} from './panelState.js';
+import {Scope} from './core/provider.js';
 
-type PanelBoxes = { _centerBox: St.BoxLayout; _rightBox: St.BoxLayout };
 type Indicator = {container: St.Widget; menu?: PopupMenu.PopupMenu};
-type Arrow = St.Widget & {updateArrowSide(side: St.Side): void; readonly arrowSide: St.Side};
-type ChromeParams = {affectsInputRegion: boolean; affectsStruts: boolean; trackFullscreen: boolean};
-type PanelLayout = {
-    _trackedActors: Array<ChromeParams & {actor: Clutter.Actor}>;
-    _updatePanelBarrier(): void;
-    _destroyPanelBarrier(): void;
-};
 
 /** Move the native panel to the bottom and host the app strip inside it.
  * Reusing the actual clock/status actors preserves menus, accessibility and
@@ -26,38 +22,46 @@ type PanelLayout = {
 export class WindowsPanel {
     private _signals = new SignalTracker();
     private _active: WindowsProfile | null = null;
-    private _panel = Main.panel as unknown as PanelBoxes;
-    private _clock: St.Widget | null = null;
-    private _clockParent: Clutter.Actor | null = null;
-    private _clockIndex = 0;
-    private _arrows = new Map<Arrow, {side: St.Side; destroyId: number}>();
-    private _centerTranslation = 0;
-    private _chromeParams: ChromeParams | null = null;
-    private _barrierOriginal: (() => void) | null = null;
-    private _barrierOverride: (() => void) | null = null;
+    private _panel = bottomPanelCapabilities();
+    private _arrows = new Set<PopupArrow>();
+    private _layout = new Scope();
+    private _layoutSignals = new SignalTracker();
+    private _centerShift: OwnedValue<number> | null = null;
+    private _positionValue: OwnedValue<[number, number]> | null = null;
+    private _width: OwnedValue<number> | null = null;
+    private _positioning = false;
+    private _entering = false;
 
     constructor(private _settings: Gio.Settings,
         private _dock: DockPanelIntegration | null = null,
         private _changed: () => void = () => {}) {
-        this._signals.connect(_settings, 'changed::desktop-profile', () => this._sync());
-        this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._position());
-        for (const property of ['x', 'y', 'width', 'height'])
-            this._signals.connect(Main.layoutManager.panelBox, `notify::${property}`, () => this._position());
-        this._signals.connect(Main.panel, 'notify::height', () => this._position());
-        this._signals.connect(this._panel._centerBox, 'notify::allocation', () => this._align());
-        this._signals.connect(this._panel._rightBox, 'child-added', () => this._syncMenus());
-        this._signals.connect(this._panel._rightBox, 'notify::allocation', () => this._align());
-        this._sync();
+        if (!this._panel) return;
+        try {
+            this._signals.connect(_settings, 'changed::desktop-profile', () => this._sync());
+            this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._position());
+            for (const property of ['x', 'y', 'width', 'height'])
+                this._signals.connect(Main.layoutManager.panelBox, `notify::${property}`, () => this._position());
+            this._signals.connect(Main.panel, 'notify::height', () => this._position());
+            this._signals.connect(this._panel!.center, 'notify::allocation', () => this._align());
+            this._signals.connect(this._panel!.right, 'child-added', () => {
+                if (!this._entering) this._syncMenus();
+            });
+            this._signals.connect(this._panel!.right, 'notify::allocation', () => this._align());
+            this._sync();
+        } catch (error) {
+            this.destroy();
+            throw error;
+        }
     }
 
     get active(): boolean { return this._active !== null; }
-    get anchor(): St.BoxLayout { return this._panel._centerBox; }
+    get anchor(): St.BoxLayout { return this._panel!.center; }
 
     attachDock(dock: DockPanelIntegration): () => void {
         if (!this._active) return () => {};
         this._dock?.setPanelHost(null);
         this._dock = dock;
-        dock.setPanelHost(this._panel._centerBox);
+        dock.setPanelHost(this._panel!.center);
         this._align();
         return () => {
             if (this._dock !== dock) return;
@@ -77,106 +81,123 @@ export class WindowsPanel {
         if (profile === this._active) return;
         this._leave();
         if (!profile) return;
+        const capabilities = bottomPanelCapabilities();
+        if (!capabilities || !this._panel || capabilities.center !== this._panel.center
+            || capabilities.right !== this._panel.right) return;
+        const release = capabilities.acquire();
+        if (!release) return;
+        this._layout.add(release);
         this._active = profile;
-        const layout = Main.layoutManager as unknown as PanelLayout;
-        const tracked = layout._trackedActors.find(item => item.actor === Main.layoutManager.panelBox);
-        if (tracked) {
-            this._chromeParams = {affectsInputRegion: tracked.affectsInputRegion,
-                affectsStruts: tracked.affectsStruts, trackFullscreen: tracked.trackFullscreen};
-            Main.layoutManager.untrackChrome(Main.layoutManager.panelBox);
-            Main.layoutManager.trackChrome(Main.layoutManager.panelBox, {...this._chromeParams, trackFullscreen: false});
-            Main.layoutManager.panelBox.show();
+        this._entering = true;
+        try {
+            this._centerShift = new OwnedValue(() => capabilities.center.translation_x,
+                value => { capabilities.center.translation_x = value; });
+            this._layout.add(() => this._centerShift?.restore());
+            this._layoutSignals.connect(capabilities.center, 'notify::translation-x',
+                () => this._centerShift?.observe());
+            const box = Main.layoutManager.panelBox;
+            this._positionValue = new OwnedValue(() => [box.x, box.y],
+                ([x, y]) => box.set_position(x, y), (a, b) => a[0] === b[0] && a[1] === b[1]);
+            this._width = new OwnedValue(() => box.width, value => box.set_width(value));
+            this._layout.add(() => this._positionValue?.restore());
+            this._layout.add(() => this._width?.restore());
+            for (const style of ['sheliak-windows-panel', profile])
+                this._layout.own(new PanelStyleClass(Main.panel, style)).set(true);
+            const date = (Main.panel.statusArea as unknown as Record<string, Indicator>).dateMenu;
+            const clock = date?.container;
+            const parent = clock?.get_parent();
+            if (clock && parent) {
+                const index = parent.get_children().indexOf(clock);
+                const placement = new OwnedValue<Clutter.Actor | null>(() => clock.get_parent(), value => {
+                    const previous = clock.get_parent();
+                    const previousIndex = previous?.get_children().indexOf(clock) ?? 0;
+                    previous?.remove_child(clock);
+                    try {
+                        if (value === parent) value.insert_child_at_index(clock, index);
+                        else value?.add_child(clock);
+                    } catch (error) {
+                        clock.get_parent()?.remove_child(clock);
+                        previous?.insert_child_at_index(clock, previousIndex);
+                        throw error;
+                    }
+                });
+                this._layout.add(() => placement.restore());
+                for (const actor of [clock, parent]) {
+                    this._layoutSignals.connect(actor, 'destroy', () => {
+                        placement.abandon();
+                        this._layoutSignals.forget(actor);
+                    });
+                }
+                placement.set(capabilities.right);
+            }
+            this._entering = false;
+            this._dock?.setPanelHost(this._panel!.center);
+            this._syncMenus();
+            this._position();
+            this._changed();
+        } catch (error) {
+            this._entering = false;
+            this._leave();
+            throw error;
         }
-        this._barrierOriginal = layout._updatePanelBarrier;
-        this._barrierOverride = () => layout._destroyPanelBarrier();
-        layout._updatePanelBarrier = this._barrierOverride;
-        layout._destroyPanelBarrier();
-        this._centerTranslation = this._panel._centerBox.translation_x;
-        for (const style of ['sheliak-windows-panel', profile])
-            Main.panel.add_style_class_name(style);
-        const date = (Main.panel.statusArea as unknown as Record<string, Indicator>).dateMenu;
-        this._clock = date?.container ?? null;
-        this._clockParent = this._clock?.get_parent() ?? null;
-        if (this._clock && this._clockParent) {
-            this._clockIndex = this._clockParent.get_children().indexOf(this._clock);
-            this._clockParent.remove_child(this._clock);
-            this._panel._rightBox.add_child(this._clock);
-        }
-        this._dock?.setPanelHost(this._panel._centerBox);
-        this._syncMenus();
-        this._position();
-        this._changed();
     }
 
     private _syncMenus(): void {
         if (!this._active) return;
         for (const indicator of Object.values(Main.panel.statusArea) as unknown as Indicator[]) {
-            if (!indicator.container || !this._panel._rightBox.contains(indicator.container)) continue;
-            const pointer = (indicator.menu as unknown as {_boxPointer?: Arrow})?._boxPointer;
+            if (!indicator.container || !this._panel!.right.contains(indicator.container)) continue;
+            const pointer = popupArrow(indicator.menu);
             if (pointer && !this._arrows.has(pointer)) {
-                const destroyId = this._signals.connect(pointer, 'destroy', () => {
+                const side = new OwnedValue(() => pointer.arrowSide, value => pointer.updateArrowSide(value));
+                this._layout.add(() => side.restore());
+                this._layoutSignals.connect(pointer, 'destroy', () => {
+                    side.abandon();
                     this._arrows.delete(pointer);
-                    this._signals.forget(pointer);
+                    this._layoutSignals.forget(pointer);
                 });
-                this._arrows.set(pointer, {side: pointer.arrowSide, destroyId});
-                pointer.updateArrowSide(St.Side.BOTTOM);
+                this._arrows.add(pointer);
+                side.set(St.Side.BOTTOM);
             }
         }
     }
 
     private _position(): void {
         const monitor = Main.layoutManager.primaryMonitor;
-        if (!this._active || !monitor) return;
-        const panel = Main.layoutManager.panelBox;
-        const y = monitor.y + monitor.height - Main.panel.height;
-        if (panel.x !== monitor.x || panel.y !== y) panel.set_position(monitor.x, y);
-        if (panel.width !== monitor.width) panel.set_width(monitor.width);
-        this._align();
+        if (!this._active || !monitor || this._positioning) return;
+        this._positioning = true;
+        try {
+            this._positionValue?.set([monitor.x, monitor.y + monitor.height - Main.panel.height]);
+            this._width?.set(monitor.width);
+            this._align();
+        } finally { this._positioning = false; }
     }
 
     private _align(): void {
         if (!this._active) return;
         const monitor = Main.layoutManager.primaryMonitor;
         if (!monitor) return;
-        this._dock?.limitPanelWidth(Math.max(80, monitor.width - 2 * this._panel._rightBox.width - 32));
+        this._dock?.limitPanelWidth(Math.max(80, monitor.width - 2 * this._panel!.right.width - 32));
         const offset = this._active === 'windows10'
-            ? -Math.ceil((monitor.width - this._panel._centerBox.width) / 2) : 0;
-        if (this._panel._centerBox.translation_x !== offset)
-            this._panel._centerBox.translation_x = offset;
+            ? -Math.ceil((monitor.width - this._panel!.center.width) / 2) : 0;
+        this._centerShift?.set(offset);
     }
 
     private _leave(): void {
         if (!this._active) return;
         this._active = null;
-        this._changed(); // Consumers release borrowed anchors before layout restoration.
-        this._dock?.setPanelHost(null);
-        this._dock = null;
-        this._panel._centerBox.translation_x = this._centerTranslation;
-        if (this._clock && this._clockParent) {
-            this._clock.get_parent()?.remove_child(this._clock);
-            this._clockParent.insert_child_at_index(this._clock, this._clockIndex);
+        try {
+            this._changed(); // Consumers release borrowed anchors first.
+        } finally {
+            try { this._dock?.setPanelHost(null); }
+            finally {
+                this._dock = null;
+                this._layoutSignals.destroy();
+                this._layout.destroy();
+                this._arrows.clear();
+                this._centerShift = null;
+                this._positionValue = null;
+                this._width = null;
+            }
         }
-        this._clock = null;
-        this._clockParent = null;
-        for (const [pointer, {side, destroyId}] of this._arrows) {
-            this._signals.disconnect(pointer, destroyId);
-            pointer.updateArrowSide(side);
-        }
-        this._arrows.clear();
-        for (const style of ['sheliak-windows-panel', 'windows10', 'windows11'])
-            Main.panel.remove_style_class_name(style);
-        const monitor = Main.layoutManager.primaryMonitor;
-        if (monitor) Main.layoutManager.panelBox.set_position(monitor.x, monitor.y);
-        if (this._chromeParams) {
-            Main.layoutManager.untrackChrome(Main.layoutManager.panelBox);
-            Main.layoutManager.trackChrome(Main.layoutManager.panelBox, this._chromeParams);
-            this._chromeParams = null;
-        }
-        const layout = Main.layoutManager as unknown as PanelLayout;
-        if (this._barrierOriginal && layout._updatePanelBarrier === this._barrierOverride) {
-            layout._updatePanelBarrier = this._barrierOriginal;
-            layout._updatePanelBarrier();
-        }
-        this._barrierOriginal = this._barrierOverride = null;
     }
 }

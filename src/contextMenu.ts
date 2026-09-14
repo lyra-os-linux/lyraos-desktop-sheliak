@@ -7,6 +7,7 @@ import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {trackOwnedSubmenu} from './shellCompat.js';
 import type {FavoritesList, WindowsFavorites} from './profileFavorites.js';
 import type {TileSizeAction} from './tileSizes.js';
 import type {TileSize} from './tileLayout.js';
@@ -97,13 +98,19 @@ export class AppContextMenu {
                 resize.menu.addMenuItem(item);
             }
             this.menu.addMenuItem(resize);
+            trackOwnedSubmenu(this.menu, resize.menu);
         }
         if (windows.length > 1) {
             this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
             for (const window of windows) {
                 const title = window.get_title() || this._app.get_name();
-                this.menu.addAction(title, () =>
-                    Main.activateWindow(window, global.get_current_time()));
+                // The menu can outlive one window while the app keeps running.
+                // Store only its stable ID and resolve a still-live window on use.
+                const sequence = window.get_stable_sequence();
+                this.menu.addAction(title, () => {
+                    const current = this._windows().find(item => item.get_stable_sequence() === sequence);
+                    if (current) Main.activateWindow(current, global.get_current_time());
+                });
             }
         }
 

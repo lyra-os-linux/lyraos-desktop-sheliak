@@ -10,6 +10,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {SignalTracker} from './signals.js';
+import {destroyPanelIndicator, trackOwnedSubmenu, panelBox, panelBoxes, type PanelSide} from './shellCompat.js';
 
 Gio._promisify(Gio.File.prototype, 'query_info_async', 'query_info_finish');
 
@@ -196,7 +197,7 @@ class ApplicationsIndicator {
     destroy(): void {
         this._signals.destroy();
         this._destroyCategoryMenus();
-        this.button.destroy();
+        destroyPanelIndicator(this.button);
     }
 
     private _syncTheme(): void {
@@ -262,6 +263,7 @@ class ApplicationsIndicator {
                     itemCount++;
                 }
                 menu.addMenuItem(submenu);
+                trackOwnedSubmenu(menu, submenu.menu);
                 continue;
             }
 
@@ -401,7 +403,7 @@ class PlacesIndicator {
 
     destroy(): void {
         this._signals.destroy();
-        this.button.destroy();
+        destroyPanelIndicator(this.button);
     }
 
     private _rebuild(): void {
@@ -605,7 +607,7 @@ class SystemIndicator {
     }
 
     destroy(): void {
-        this.button.destroy();
+        destroyPanelIndicator(this.button);
     }
 
     private _openVega(): void {
@@ -666,6 +668,7 @@ export class PanelMenus {
     private _extensionPath?: string;
     private _layoutId = 0;
     private _compact = false;
+    private _boxes = panelBoxes();
 
     constructor(settings: Gio.Settings, extensionPath?: string,
         private _mode: 'menus' | 'search' = 'menus',
@@ -679,14 +682,13 @@ export class PanelMenus {
                 () => this._recreate());
         }
         this._recreate();
-        const panel = Main.panel as unknown as St.Widget & {
-            _leftBox: St.BoxLayout; _centerBox: St.BoxLayout; _rightBox: St.BoxLayout;
-        };
-        for (const actor of [panel, panel._leftBox, panel._centerBox, panel._rightBox]) {
+        const panel = Main.panel;
+        const boxes = this._boxes ? Object.values(this._boxes) : [];
+        for (const actor of [panel, ...boxes]) {
             this._signals.connect(actor, 'notify::allocation', () => this._queueLayout());
             this._signals.connect(actor, 'style-changed', () => this._queueLayout());
         }
-        for (const box of [panel._leftBox, panel._centerBox, panel._rightBox]) {
+        for (const box of boxes) {
             // Menus and search can be enabled or rebuilt independently.
             this._signals.connect(box, 'child-added', () => this._queueLayout());
             this._signals.connect(box, 'child-removed', () => this._queueLayout());
@@ -710,9 +712,10 @@ export class PanelMenus {
 
         const isMacos = this._settings.get_string('desktop-profile') === 'macos';
         const configuredBox = isMacos ? 'left' : this._settings.get_string('panel-menu-position');
-        const box = ['left', 'center', 'right'].includes(configuredBox)
-            ? configuredBox
-            : 'left';
+        const box = [configuredBox, 'left', 'center', 'right']
+            .filter((side): side is PanelSide => ['left', 'center', 'right'].includes(side))
+            .find(side => panelBox(side));
+        if (!box) return;
         let position = box === 'left' && !isMacos ? 1 : 0;
 
         if (this._mode === 'menus' && this._settings.get_boolean('show-applications-menu')) {
@@ -765,9 +768,9 @@ export class PanelMenus {
 
     private _syncLayout(): void {
         this._syncSearchOrder();
-        const panel = Main.panel as unknown as St.Widget & {
-            _leftBox: St.BoxLayout; _centerBox: St.BoxLayout; _rightBox: St.BoxLayout;
-        };
+        const panel = Main.panel;
+        const boxes = this._boxes;
+        if (!boxes) { this._setCompact(true); return; }
         if (!panel.mapped || panel.width <= 0) return;
         const buttons = [this._applications?.button, this._places?.button, this._system?.button]
             .filter((button): button is PanelMenu.Button => !!button);
@@ -790,10 +793,10 @@ export class PanelMenus {
             .filter(child => child.visible && !own.some(button => button.container === child))
             .reduce((sum, child) => sum + child.get_preferred_width(-1)[1], 0);
         let capacity: number;
-        if (box === panel._centerBox) {
-            capacity = panel.width - 2 * Math.max(otherWidth(panel._leftBox), otherWidth(panel._rightBox));
+        if (box === boxes.center) {
+            capacity = panel.width - 2 * Math.max(otherWidth(boxes.left), otherWidth(boxes.right));
         } else {
-            const centerWidth = panel._centerBox.get_preferred_width(-1)[1];
+            const centerWidth = boxes.center.get_preferred_width(-1)[1];
             const monitor = Main.layoutManager.findMonitorForActor(panel);
             const area = monitor ? Main.layoutManager.getWorkAreaForMonitor(monitor.index) : null;
             const offset = monitor && area ? 2 * (area.x - monitor.x) + area.width - monitor.width : 0;
@@ -802,9 +805,14 @@ export class PanelMenus {
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         // A little breathing room also prevents threshold flicker on rounding.
         const compact = expanded + otherWidth(box) + (this._compact ? 16 : 8) * scale > capacity;
+        this._setCompact(compact);
+    }
+
+    private _setCompact(compact: boolean): void {
         if (compact === this._compact) return;
         this._compact = compact;
-        for (const button of buttons) {
+        for (const button of [this._applications?.button, this._places?.button, this._system?.button]) {
+            if (!button) continue;
             for (const child of button.get_first_child()!.get_children())
                 if (child instanceof St.Label) child.visible = !compact;
         }

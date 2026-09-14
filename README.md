@@ -27,6 +27,20 @@ GNOME Shell 48, sessão Wayland. Pacote OBS: `sheliak`, no projeto Lyra.
 A instalação de fontes locais usa `npm run build`; o OBS recebe o tarball de
 fontes com o bundle gerado. Não requer rede ou npm dentro do build RPM.
 
+Os [adaptadores de compatibilidade](docs/shell-compatibility.md) verificam
+capacidades antes de alterar o painel e os handlers do Shell, preservando
+alternativas nativas quando um recurso opcional falta. A qualificação local
+atual cobre GNOME/Mutter 48.8; a documentação registra os cenários negativos
+e os limites dessa cobertura.
+
+A [restauração do Lyra Painel](docs/panel-coexistence.md) acompanha a posse de
+visibilidade, classes, CSS e layout para preservar alterações posteriores de
+outros componentes. Inclui testes de coexistência e de falha na ativação.
+
+A [verificação de liberação de janelas](docs/window-lifecycle.md) cobre
+referências, sinais e memória em abertura/fechamento repetidos, inclusive ao
+desativar o Dock com aplicativos abertos.
+
 ```sh
 npm ci
 npm run check

@@ -286,6 +286,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     }
 
     destroy(): void {
+        if (this._destroyed) return;
         console.debug('Sheliak: destruindo dock');
         this._destroyed = true;
         if (this._hideTimeoutId) {
@@ -305,6 +306,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
             this._favoriteLaterId = 0;
         }
         this._signals.destroy();
+        this._trackedWindows.clear();
         this._magnifier.destroy();
         this._launcherEntries.destroy();
         this._clearDragPlaceholder();
@@ -533,7 +535,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     }
 
     private _trackWindow(window: Meta.Window): void {
-        if (this._trackedWindows.has(window))
+        if (this._destroyed || this._trackedWindows.has(window))
             return;
         const ids: number[] = [];
         for (const signal of ['position-changed', 'size-changed',

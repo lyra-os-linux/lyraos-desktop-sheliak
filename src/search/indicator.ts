@@ -11,6 +11,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {SignalTracker} from '../signals.js';
+import {destroyPanelIndicator} from '../shellCompat.js';
 
 Gio._promisify(Tracker.SparqlConnection.prototype, 'query_async', 'query_finish');
 Gio._promisify(Tracker.SparqlCursor.prototype, 'next_async', 'next_finish');
@@ -194,7 +195,7 @@ export class SearchIndicator {
         this._compactIcon.destroy();
         this._entry.destroy();
         this._resultsMenu.destroy();
-        this.button.destroy();
+        destroyPanelIndicator(this.button);
         try {
             this._fileConnection?.close();
         } catch (error) {

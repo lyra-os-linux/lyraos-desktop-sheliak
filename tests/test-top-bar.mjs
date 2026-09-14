@@ -17,7 +17,7 @@ const {outputFiles} = await build({
             builder.onLoad({filter: /.*/, namespace: 'shell-fixture'}, args => ({
                 contents: args.path.startsWith('gi://')
                     ? `export default fixtures[${JSON.stringify(args.path.slice(5))}];`
-                    : 'export const {panel, layoutManager} = fixtures.Main;',
+                    : 'export const {panel, layoutManager, overview, sessionMode, extensionManager} = fixtures.Main;',
             }));
         },
     }],
@@ -34,10 +34,10 @@ class Signals {
     disconnect(id) {
         this.callbacks.delete(id);
     }
-    emit(signal) {
+    emit(signal, ...args) {
         for (const handler of [...this.callbacks.values()]) {
             if (handler.signal === signal)
-                handler.callback(this);
+                handler.callback(this, ...args);
         }
     }
 }
@@ -45,12 +45,41 @@ class Signals {
 const marginProperties = ['margin_top', 'margin_bottom', 'margin_left', 'margin_right'];
 const margins = panel => marginProperties.map(key => panel[key]);
 
-function fixture(mapped) {
+function visibleActor(visible = true) {
+    const actor = Object.assign(new Signals(), {
+        get_first_child: () => null, get_parent: () => ({}),
+        has_style_class_name: () => false,
+        show() { this.visible = true; }, hide() { this.visible = false; },
+    });
+    Object.defineProperty(actor, 'visible', {
+        configurable: true,
+        get: () => visible,
+        set(value) { if (visible !== value) { visible = value; actor.emit('notify::visible'); } },
+    });
+    return actor;
+}
+
+function fixture(mapped, rightBox = 'available', before = () => {}) {
     const panel = new Signals();
-    panel.height = 24;
+    panel.min_height = 24;
+    panel.natural_height = 24;
+    panel.min_height_set = false;
+    panel.natural_height_set = false;
+    panel.heightIncludesMargins = false;
+    Object.defineProperty(panel, 'height', {
+        get: () => (panel.natural_height_set ? panel.natural_height : 24)
+            + (panel.heightIncludesMargins ? panel.margin_top + panel.margin_bottom : 0),
+        set(value) {
+            panel.min_height = panel.natural_height = value;
+            panel.min_height_set = panel.natural_height_set = true;
+        },
+    });
     panel.set_height = value => panel.height = value;
-    panel.statusArea = {};
-    panel._rightBox = Object.assign(new Signals(), {get_children: () => []});
+    const clock = visibleActor(), activities = visibleActor(), indicator = visibleActor();
+    panel.statusArea = {dateMenu: clock, activities: {container: activities}};
+    panel._rightBox = Object.assign(new Signals(), {get_children: () => [indicator]});
+    if (rightBox === 'missing') delete panel._rightBox;
+    if (rightBox === 'incompatible') panel._rightBox = {get_children: () => []};
     panel.mapped = mapped;
     panel.classes = new Set();
     // StWidget applies the theme's margins before emitting style-changed.
@@ -65,17 +94,21 @@ function fixture(mapped) {
         if (panel.classes.has(name))
             return;
         panel.classes.add(name);
+        panel.emit('notify::style-class');
         if (panel.mapped)
             panel.applyTheme();
     };
     panel.remove_style_class_name = name => {
-        if (panel.classes.delete(name) && panel.mapped)
-            panel.applyTheme();
+        if (panel.classes.delete(name)) {
+            panel.emit('notify::style-class');
+            if (panel.mapped) panel.applyTheme();
+        }
     };
     marginProperties.forEach((key, i) => panel[key] = i + 2);
 
     const settings = new Signals();
-    const values = {'panel-height': 32, 'panel-margin': 7, 'floating-panel': true, 'extend-to-edges': false};
+    const values = {'panel-height': 32, 'panel-margin': 7, 'floating-panel': true,
+        'extend-to-edges': false, 'hide-workspace-button': false};
     settings.get_uint = key => values[key];
     settings.get_string = key => values[key];
     settings.get_boolean = key => values[key] ?? true;
@@ -102,9 +135,26 @@ function fixture(mapped) {
         Main: {panel, layoutManager: {primaryIndex: 0}},
     };
     const {TopBarManager} = runInNewContext(`${outputFiles[0].text}\nTopBarModule;`,
-        {fixtures, global: shellGlobal, console: {debug() {}}});
+        {fixtures, global: shellGlobal, console: {debug() {}, warn() {}}});
+    const context = {panel, settings, window, shellGlobal, clock, activities, indicator};
+    before(context);
     const manager = new TopBarManager(settings);
-    return {panel, settings, window, manager, shellGlobal};
+    return {...context, manager};
+}
+
+for (const capability of ['missing', 'incompatible']) {
+    test(`optional indicator box ${capability} preserves basic panel and cleans up`, () => {
+        const {panel, settings, manager, shellGlobal, window} = fixture(true, capability);
+        settings.change('show-panel-indicators', false);
+        settings.change('panel-margin', 12);
+        assert.equal(panel.height, 32);
+        assert.deepEqual(margins(panel), [12, 12, 12, 12]);
+        manager.destroy();
+        assert.equal(panel.height, 24);
+        assert.deepEqual(margins(panel), [2, 3, 4, 5]);
+        for (const source of [panel, settings, window, shellGlobal.display, shellGlobal.workspace_manager])
+            assert.equal(source.callbacks.size, 0);
+    });
 }
 
 for (const mapped of [false, true]) {
@@ -237,3 +287,135 @@ test('destroyed native indicators are not accessed during preference changes or 
     settings.change('show-panel-indicators', false);
     manager.destroy();
 });
+
+for (const role of ['clock', 'activities', 'indicator']) {
+    const key = {clock: 'show-clock', activities: 'hide-workspace-button', indicator: 'show-panel-indicators'}[role];
+    const suppressed = role === 'activities';
+    test(`${role}: foreign hide while enabled survives disable`, () => {
+        const state = fixture(true);
+        state[role].hide();
+        state.manager.destroy();
+        assert.equal(state[role].visible, false);
+        assert.equal(state[role].callbacks.size, 0);
+    });
+    test(`${role}: initially hidden actor stays hidden through preference cycles`, () => {
+        const state = fixture(true, 'available', context => context[role].hide());
+        state.settings.change(key, suppressed);
+        state.settings.change(key, !suppressed);
+        state.manager.destroy();
+        assert.equal(state[role].visible, false);
+    });
+    test(`${role}: late external show is suppressed and restored on release`, () => {
+        const state = fixture(true, 'available', context => context[role].hide());
+        state.settings.change(key, suppressed);
+        state[role].show();
+        assert.equal(state[role].visible, false);
+        state.settings.change(key, !suppressed);
+        assert.equal(state[role].visible, true);
+        state[role].hide();
+        state.manager.destroy();
+        assert.equal(state[role].visible, false);
+    });
+    test(`${role}: destroyed actor is never accessed during later cleanup`, () => {
+        const state = fixture(true);
+        const actor = state[role];
+        state.settings.change(key, suppressed);
+        actor.emit('destroy');
+        actor.callbacks.clear();
+        Object.defineProperty(actor, 'visible', {get() { assert.fail('Disposed actor read'); }, set() { assert.fail('Disposed actor written'); }});
+        actor.disconnect = () => assert.fail('Disposed signal access');
+        state.settings.change(key, !suppressed);
+        state.manager.destroy();
+    });
+}
+
+test('foreign class replacement and margins survive teardown restyling', () => {
+    const {panel, manager} = fixture(true);
+    panel.remove_style_class_name('sheliak-panel-floating');
+    panel.add_style_class_name('sheliak-panel-floating');
+    panel.add_style_class_name('foreign-panel');
+    panel.height = 43;
+    marginProperties.forEach((key, index) => panel[key] = index + 21);
+    manager.destroy();
+    manager.destroy();
+    assert.equal(panel.height, 43);
+    assert.deepEqual(margins(panel), [21, 22, 23, 24]);
+    assert.deepEqual([...panel.classes].sort(), ['foreign-panel', 'sheliak-panel-floating']);
+});
+
+test('foreign geometry survives CSS changes made by our class removal', () => {
+    const {panel, manager} = fixture(true);
+    marginProperties.forEach((key, index) => panel[key] = index + 21);
+    manager.destroy();
+    assert.deepEqual(margins(panel), [21, 22, 23, 24]);
+});
+
+for (const foreign of [false, true]) {
+    test(`geometry restores after the entire panel appearance is released (foreign=${foreign})`, () => {
+        const {panel, manager} = fixture(true);
+        if (foreign) {
+            panel.height = 43;
+            marginProperties.forEach((key, index) => panel[key] = index + 21);
+        }
+        manager.destroy(() => { panel.applyTheme(); panel.set_height(27); });
+        assert.deepEqual(margins(panel), foreign ? [21, 22, 23, 24] : [2, 3, 4, 5]);
+        assert.equal(panel.height, foreign ? 43 : 24);
+    });
+}
+
+test('initial classes and latest foreign height restore after subsequent Lyra writes', () => {
+    const {panel, settings, manager} = fixture(true, 'available', ({panel}) => {
+        panel.classes.add('sheliak-panel-floating');
+        panel.classes.add('sheliak-panel-flush');
+    });
+    panel.height = 41;
+    settings.change('panel-height', 36);
+    manager.destroy();
+    assert.equal(panel.height, 41);
+    assert.deepEqual([...panel.classes].sort(), ['sheliak-panel-floating', 'sheliak-panel-flush']);
+});
+
+test('Clutter content height does not grow by its margins on disable', () => {
+    const {panel, manager} = fixture(true, 'available', ({panel}) => { panel.heightIncludesMargins = true; });
+    panel.set_height(43);
+    panel.margin_top = 21; panel.margin_bottom = 22;
+    assert.equal(panel.height, 86);
+    manager.destroy(() => { panel.applyTheme(); panel.set_height(29); });
+    assert.equal(panel.height, 86);
+    assert.equal(panel.natural_height, 43);
+});
+
+test('automatic native height requests are restored, not frozen to the old allocation', () => {
+    const {panel, manager} = fixture(true);
+    manager.destroy();
+    assert.equal(panel.min_height_set, false);
+    assert.equal(panel.natural_height_set, false);
+});
+
+for (const stage of ['connect', 'apply']) {
+    test(`partial ${stage} failure restores visibility, geometry and signal ownership`, () => {
+        let captured;
+        assert.throws(() => fixture(true, 'available', context => {
+            captured = context;
+            context.settings.change('show-clock', false);
+            context.settings.change('hide-workspace-button', true);
+            context.settings.change('show-panel-indicators', false);
+            if (stage === 'connect') {
+                context.shellGlobal.display.connect = () => { throw Error('injected connect failure'); };
+            } else {
+                const add = context.panel.add_style_class_name;
+                context.panel.add_style_class_name = name => { add(name); throw Error('injected apply failure'); };
+            }
+        }), /injected/);
+        for (const source of [captured.panel, captured.panel._rightBox, captured.clock,
+            captured.activities, captured.indicator, captured.settings, captured.window,
+            captured.shellGlobal.display, captured.shellGlobal.workspace_manager])
+            assert.equal(source.callbacks.size, 0);
+        assert.equal(captured.panel.height, 24);
+        assert.deepEqual(margins(captured.panel), [2, 3, 4, 5]);
+        assert.equal(captured.panel.classes.size, 0);
+        assert.equal(captured.clock.visible, true);
+        assert.equal(captured.activities.visible, true);
+        assert.equal(captured.indicator.visible, true);
+    });
+}

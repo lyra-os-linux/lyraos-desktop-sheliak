@@ -9,6 +9,7 @@ import {ShowAppsButton} from '../showAppsButton.js';
 import {windowsProfile} from '../desktopProfile.js';
 import type {DockEndpoint} from './dock.js';
 import type {WindowsPanel} from '../windowsPanel.js';
+import {destroyPanelIndicator, panelBox, popupArrow} from '../shellCompat.js';
 
 export default class LyraMenus extends LyraExtension {
     private _controller: PanelMenus | null = null;
@@ -28,6 +29,8 @@ export default class LyraMenus extends LyraExtension {
             let wrapper: PanelMenu.Button | null = null;
             let fallback: ShowAppsButton | null = null;
             if (!dock) {
+                const side = panel?.active ? 'center' : 'left';
+                if (!panelBox(side)) return;
                 wrapper = new PanelMenu.Button(0, 'Lyra Menus', true);
                 fallback = new ShowAppsButton(`${this.path}/icons/sheliak-logo-symbolic.svg`,
                     `${this.path}/icons/sheliak-logo-symbolic-dark.svg`);
@@ -39,8 +42,7 @@ export default class LyraMenus extends LyraExtension {
             const start = new StartMenu(launcher, anchor, profile, settings);
             this._start = start;
             if (!dock?.panel && !panel?.active) {
-                const pointer = start.menu as unknown as {_boxPointer: {updateArrowSide(side: St.Side): void}};
-                pointer._boxPointer.updateArrowSide(dock ? St.Side.BOTTOM : St.Side.TOP);
+                popupArrow(start.menu)?.updateArrowSide(dock ? St.Side.BOTTOM : St.Side.TOP);
             }
             const borrowed = dock?.dock;
             if (borrowed) borrowed.setLauncherAction(() => start.toggle());
@@ -57,7 +59,7 @@ export default class LyraMenus extends LyraExtension {
                     GObject.signal_handler_unblock(global.display as never, original);
                 start.destroy();
                 if (this._start === start) this._start = null;
-                wrapper?.destroy();
+                if (wrapper) destroyPanelIndicator(wrapper);
             };
         };
         this.scope.add(() => { release?.(); release = null; });

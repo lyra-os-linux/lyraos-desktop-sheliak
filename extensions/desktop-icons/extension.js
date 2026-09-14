@@ -25,6 +25,7 @@ import St from 'gi://St'
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js'
+import {shellIsStartingUp} from '../../src/shellCompat.js';
 
 import * as EmulateX11 from './emulateX11WindowType.js';
 import * as VisibleArea from './visibleArea.js';
@@ -77,7 +78,7 @@ export default class DING extends Extension {
             this.data.visibleArea = this.DesktopIconsUsableArea;
         }
         // If the desktop is still starting up, we wait until it is ready
-        if (Main.layoutManager._startingUp) {
+        if (shellIsStartingUp()) {
             this.data.startupPreparedId = Main.layoutManager.connect('startup-complete', () => this.innerEnable());
         } else {
             this.data.startupPreparedId = null;

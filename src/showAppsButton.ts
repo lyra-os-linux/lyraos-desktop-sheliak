@@ -1,7 +1,7 @@
 import Gio from 'gi://Gio';
 import St from 'gi://St';
 
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import {showApplications} from './shellCompat.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 export class ShowAppsButton {
@@ -29,7 +29,7 @@ export class ShowAppsButton {
             track_hover: true,
             accessible_name: _('Show Applications'),
         });
-        this.actor.connect('clicked', () => this._action ? this._action() : Main.overview.showApps());
+        this.actor.connect('clicked', () => this._action ? this._action() : showApplications());
         this.actor.connect('style-changed', () => this._syncTheme());
     }
 

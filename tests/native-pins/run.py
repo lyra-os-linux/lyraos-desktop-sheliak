@@ -21,7 +21,10 @@ parser.add_argument('--scale', type=int, choices=[1, 2], default=1)
 parser.add_argument('--language', choices=['en_US', 'pt_BR', 'es_ES'], default='en_US')
 parser.add_argument('--legacy-extensions', type=Path, help='Directory containing the two previous extension UUIDs')
 parser.add_argument('--inside-private-bus', action='store_true')
+parser.add_argument('--timeout', type=int, default=75, help='Private test deadline in seconds (30–3600)')
 args = parser.parse_args()
+if not 30 <= args.timeout <= 3600:
+    parser.error('--timeout must be between 30 and 3600 seconds')
 output = args.output.resolve()
 output.mkdir(parents=True, exist_ok=True)
 result = output / 'result.json'
@@ -107,10 +110,11 @@ if not args.inside_private_bus:
         result.write_text(json.dumps({'status': 'pending'}))
         with (output / 'bus.log').open('w') as log:
             process = subprocess.Popen(['dbus-run-session', '--', sys.executable, str(Path(__file__).resolve()),
-                '--inside-private-bus', '--output', str(output), '--width', str(args.width), '--scale', str(args.scale)],
+                '--inside-private-bus', '--output', str(output), '--width', str(args.width), '--scale', str(args.scale),
+                '--timeout', str(args.timeout)],
                 env=env, stdout=log, stderr=log, start_new_session=True)
             try:
-                code = process.wait(timeout=90)
+                code = process.wait(timeout=args.timeout + 15)
             finally:
                 try: os.killpg(process.pid, signal.SIGTERM)
                 except ProcessLookupError: pass
@@ -127,7 +131,7 @@ with (output / 'shell.log').open('w') as log:
     shell = subprocess.Popen(['gnome-shell', '--headless', '--wayland', '--no-x11', '--virtual-monitor',
         f'{args.width * args.scale}x{900 * args.scale}', '--sm-disable'], stdout=log, stderr=log)
     try:
-        deadline = time.monotonic() + 75
+        deadline = time.monotonic() + args.timeout
         while time.monotonic() < deadline:
             if shell.poll() is not None: raise RuntimeError('Private Shell exited')
             report = json.loads(result.read_text())

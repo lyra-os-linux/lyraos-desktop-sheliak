@@ -1,6 +1,6 @@
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Provider, Scope} from './provider.js';
+import {extensionManager} from '../shellCompat.js';
 
 export const UUIDS = {
     dock: 'dock@lyraos.com.br', panel: 'panel@lyraos.com.br',
@@ -17,12 +17,14 @@ type Manager = {
 
 /** Rebind on enable/disable, and release old objects before provider teardown. */
 export function watch<T>(scope: Scope, uuid: string, changed: (value: T | null) => void): void {
-    const manager = Main.extensionManager as unknown as Manager;
+    const manager = extensionManager() as unknown as Manager | null;
+    if (!manager) { changed(null); return; }
     let endpoint: Endpoint<T> | null = null;
     let unsubscribe: (() => void) | null = null;
     const sync = () => {
         const candidate = manager.lookup(uuid)?.stateObj?.lyraApi as Endpoint<T> | undefined;
-        const next = candidate?.version === 1 && candidate.current ? candidate : null;
+        const next = candidate?.version === 1 && candidate.current
+            && typeof candidate.subscribe === 'function' ? candidate : null;
         if (endpoint === next) return;
         unsubscribe?.();
         unsubscribe = null;
@@ -48,7 +50,9 @@ export abstract class LyraExtension<T = object> extends Extension {
 
     enable(): void {
         try {
-            const legacy = (Main.extensionManager as unknown as Manager).lookup('sheliak@lyraos.com.br');
+            const manager = extensionManager() as unknown as Manager | null;
+            if (!manager) throw new Error('Lyra suite requires GNOME extension discovery');
+            const legacy = manager.lookup('sheliak@lyraos.com.br');
             if (legacy?.state === 1)
                 throw new Error('Disable the legacy Sheliak extension before enabling the Lyra suite');
             this.running = true;
