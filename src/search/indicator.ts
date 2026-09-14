@@ -91,88 +91,94 @@ export class SearchIndicator {
     private _entryBox: St.BoxLayout;
 
     constructor() {
-        this.button = new PanelMenu.Button(0.5, _('Search'), true);
-        this.button.add_style_class_name('sheliak-panel-indicator');
-        this.button.add_style_class_name('sheliak-search-button');
+        try {
+            this.button = new PanelMenu.Button(0.5, _('Search'), true);
+            this.button.add_style_class_name('sheliak-panel-indicator');
+            this.button.add_style_class_name('sheliak-search-button');
 
-        this._entry = new St.Entry({
-            style_class: 'search-entry sheliak-search-entry',
-            hint_text: _('Search applications and files…'),
-            can_focus: true,
-            y_align: Clutter.ActorAlign.CENTER,
-            primary_icon: new St.Icon({
+            this._entry = new St.Entry({
+                style_class: 'search-entry sheliak-search-entry',
+                hint_text: _('Search applications and files…'),
+                can_focus: true,
+                y_align: Clutter.ActorAlign.CENTER,
+                primary_icon: new St.Icon({
+                    style_class: 'search-entry-icon',
+                    icon_name: 'edit-find-symbolic',
+                }),
+            });
+            // The panel allocates status-area actors in a fixed row. Keep enough
+            // room for GNOME's centered clock and right indicators on narrow
+            // outputs instead of allowing the search entry to overlap them.
+            this._signals.connect(Main.panel, 'notify::width', () => this._syncWidth());
+            this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._syncWidth());
+            this._syncWidth();
+
+            // O “x” só aparece quando há texto; St.Entry não gerencia a
+            // visibilidade do ícone, então ela é alternada em _updateResults().
+            this._clearIcon = new St.Icon({
                 style_class: 'search-entry-icon',
-                icon_name: 'edit-find-symbolic',
-            }),
-        });
-        // The panel allocates status-area actors in a fixed row. Keep enough
-        // room for GNOME's centered clock and right indicators on narrow
-        // outputs instead of allowing the search entry to overlap them.
-        this._signals.connect(Main.panel, 'notify::width', () => this._syncWidth());
-        this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._syncWidth());
-        this._syncWidth();
+                icon_name: 'edit-clear-symbolic',
+                visible: false,
+            });
+            this._entry.set_secondary_icon(this._clearIcon);
+            this.button.add_child(this._entry);
+            this._compactIcon = new St.Icon({icon_name: 'edit-find-symbolic',
+                style_class: 'system-status-icon', y_align: Clutter.ActorAlign.CENTER});
 
-        // O “x” só aparece quando há texto; St.Entry não gerencia a
-        // visibilidade do ícone, então ela é alternada em _updateResults().
-        this._clearIcon = new St.Icon({
-            style_class: 'search-entry-icon',
-            icon_name: 'edit-clear-symbolic',
-            visible: false,
-        });
-        this._entry.set_secondary_icon(this._clearIcon);
-        this.button.add_child(this._entry);
-        this._compactIcon = new St.Icon({icon_name: 'edit-find-symbolic',
-            style_class: 'system-status-icon', y_align: Clutter.ActorAlign.CENTER});
-
-        // Sem grab modal: o campo faz parte do botão do painel, e um grab
-        // restringiria os eventos de teclado ao popup de resultados,
-        // bloqueando a digitação. O fechamento ao clicar fora é manual.
-        // O BoxPointer posiciona o popup a partir do CENTRO da caixa de
-        // conteúdo da origem (não da borda), então arrowAlignment sozinho
-        // nunca alinha bordas — setSourceAlignment(0.0) muda a referência
-        // para a borda esquerda da origem, fazendo o popup nascer alinhado
-        // ao início do campo de busca, independentemente da largura do
-        // resultado. A origem é o botão, que permanece no painel mesmo quando
-        // o campo é movido para dentro do popup no modo compacto.
-        this._resultsMenu = new PopupMenu.PopupMenu(this.button, 0.0, St.Side.TOP);
-        this._resultsMenu.setSourceAlignment(0.0);
-        this._resultsMenu.actor.add_style_class_name('sheliak-panel-menu');
-        this._resultsMenu.actor.add_style_class_name('sheliak-search-results');
-        Main.uiGroup.add_child(this._resultsMenu.actor);
-        this._resultsMenu.actor.hide();
-        // Not a menu item: rebuilding results must not destroy the focused entry.
-        this._entryBox = new St.BoxLayout({style_class: 'sheliak-search-popup-entry', visible: false});
-        this._resultsMenu.box.add_child(this._entryBox);
-        this._signals.connect(this.button, 'captured-event',
-            (_actor: unknown, event: Clutter.Event) => {
-                if (this._compact && (event.type() === Clutter.EventType.TOUCH_BEGIN ||
-                    (event.type() === Clutter.EventType.BUTTON_PRESS && event.get_button() === Clutter.BUTTON_PRIMARY))) {
-                    this._openCompact();
+            // Sem grab modal: o campo faz parte do botão do painel, e um grab
+            // restringiria os eventos de teclado ao popup de resultados,
+            // bloqueando a digitação. O fechamento ao clicar fora é manual.
+            // O BoxPointer posiciona o popup a partir do CENTRO da caixa de
+            // conteúdo da origem (não da borda), então arrowAlignment sozinho
+            // nunca alinha bordas — setSourceAlignment(0.0) muda a referência
+            // para a borda esquerda da origem, fazendo o popup nascer alinhado
+            // ao início do campo de busca, independentemente da largura do
+            // resultado. A origem é o botão, que permanece no painel mesmo quando
+            // o campo é movido para dentro do popup no modo compacto.
+            this._resultsMenu = new PopupMenu.PopupMenu(this.button, 0.0, St.Side.TOP);
+            this._resultsMenu.setSourceAlignment(0.0);
+            this._resultsMenu.actor.add_style_class_name('sheliak-panel-menu');
+            this._resultsMenu.actor.add_style_class_name('sheliak-search-results');
+            Main.uiGroup.add_child(this._resultsMenu.actor);
+            this._resultsMenu.actor.hide();
+            // Not a menu item: rebuilding results must not destroy the focused entry.
+            this._entryBox = new St.BoxLayout({style_class: 'sheliak-search-popup-entry', visible: false});
+            this._resultsMenu.box.add_child(this._entryBox);
+            this._signals.connect(this.button, 'captured-event',
+                (_actor: unknown, event: Clutter.Event) => {
+                    if (this._compact && (event.type() === Clutter.EventType.TOUCH_BEGIN ||
+                        (event.type() === Clutter.EventType.BUTTON_PRESS && event.get_button() === Clutter.BUTTON_PRIMARY))) {
+                        this._openCompact();
+                        return Clutter.EVENT_STOP;
+                    }
+                    if (event.type() !== Clutter.EventType.KEY_PRESS)
+                        return Clutter.EVENT_PROPAGATE;
+                    if (global.stage.get_key_focus() !== this.button)
+                        return Clutter.EVENT_PROPAGATE;
+                    if (![Clutter.KEY_Return, Clutter.KEY_KP_Enter, Clutter.KEY_space,
+                        Clutter.KEY_Down].includes(event.get_key_symbol()))
+                        return Clutter.EVENT_PROPAGATE;
+                    if (this._compact) this._openCompact();
+                    else this._entry.grab_key_focus();
                     return Clutter.EVENT_STOP;
-                }
-                if (event.type() !== Clutter.EventType.KEY_PRESS)
-                    return Clutter.EVENT_PROPAGATE;
-                if (global.stage.get_key_focus() !== this.button)
-                    return Clutter.EVENT_PROPAGATE;
-                if (![Clutter.KEY_Return, Clutter.KEY_KP_Enter, Clutter.KEY_space,
-                    Clutter.KEY_Down].includes(event.get_key_symbol()))
-                    return Clutter.EVENT_PROPAGATE;
-                if (this._compact) this._openCompact();
-                else this._entry.grab_key_focus();
-                return Clutter.EVENT_STOP;
+                });
+
+            this._signals.connect(this._entry, 'secondary-icon-clicked', () => {
+                this._entry.set_text('');
+                this._entry.grab_key_focus();
             });
 
-        this._signals.connect(this._entry, 'secondary-icon-clicked', () => {
-            this._entry.set_text('');
-            this._entry.grab_key_focus();
-        });
+            this._signals.connect(this._entry.clutter_text, 'text-changed', () => this._updateResults());
+            this._signals.connect(this._entry.clutter_text, 'key-press-event',
+                (_actor: unknown, event: Clutter.Event) => this._onEntryKeyPress(event));
 
-        this._signals.connect(this._entry.clutter_text, 'text-changed', () => this._updateResults());
-        this._signals.connect(this._entry.clutter_text, 'key-press-event',
-            (_actor: unknown, event: Clutter.Event) => this._onEntryKeyPress(event));
-
-        this._signals.connect(this._appSystem, 'installed-changed', () => this._rebuildIndex());
-        this._rebuildIndex();
+            this._signals.connect(this._appSystem, 'installed-changed', () => this._rebuildIndex());
+            this._rebuildIndex();
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
+        }
     }
 
     private _syncWidth(): void {
@@ -192,10 +198,10 @@ export class SearchIndicator {
         this._signals.destroy();
         this._disconnectStageClick();
         // Either actor can be outside the button tree after a mode switch.
-        this._compactIcon.destroy();
-        this._entry.destroy();
-        this._resultsMenu.destroy();
-        destroyPanelIndicator(this.button);
+        this._compactIcon?.destroy();
+        this._entry?.destroy();
+        this._resultsMenu?.destroy();
+        if (this.button) destroyPanelIndicator(this.button);
         try {
             this._fileConnection?.close();
         } catch (error) {

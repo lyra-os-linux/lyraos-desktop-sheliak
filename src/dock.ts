@@ -110,165 +110,171 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     }
 
     constructor(settings?: Gio.Settings, extensionPath?: string) {
-        console.debug('Sheliak: construindo dock');
-        this._settings = settings ?? new Gio.Settings({schema_id: SETTINGS_SCHEMA});
-        const logoPath = extensionPath
-            ? GLib.build_filenamev([extensionPath, 'icons', 'sheliak-logo-symbolic.svg'])
-            : null;
-        const logoPathLight = extensionPath
-            ? GLib.build_filenamev([extensionPath, 'icons', 'sheliak-logo-symbolic-dark.svg'])
-            : null;
-        this.actor = new St.BoxLayout({
-            // Match the Shell's native #dash selectors, including user themes.
-            name: 'dash',
-            style_class: 'sheliak-dock',
-            orientation: Clutter.Orientation.HORIZONTAL,
-            reactive: true,
-            can_focus: false,
-            x_align: Clutter.ActorAlign.CENTER,
-        });
-        this._background = new St.BoxLayout({
-            style_class: 'dash-background dash-item-container',
-            orientation: Clutter.Orientation.HORIZONTAL,
-            x_expand: true,
-            y_expand: true,
-        });
-        this.actor.add_child(this._background);
-        this._appsBox = new St.BoxLayout({
-            style_class: 'sheliak-apps',
-            orientation: Clutter.Orientation.HORIZONTAL,
-        });
-        (this._appsBox as unknown as {_delegate?: unknown})._delegate = this;
-
-        this._leadingSpacer = new St.Widget({visible: false});
-        this._trailingSpacer = new St.Widget({visible: false});
-        this._background.add_child(this._leadingSpacer);
-        this._background.add_child(this._appsBox);
-        // Keep the system actions outside the aligned apps area. When the
-        // dock is extended, this spacer absorbs the remaining room after the
-        // apps, leaving Trash and Show Apps anchored at the end.
-        this._background.add_child(this._trailingSpacer);
-
-        this._separator = new St.Widget({style_class: 'dash-separator sheliak-separator'});
-        this._background.add_child(this._separator);
-
-        this._trash = new TrashIcon();
-        this._showApps = new ShowAppsButton(logoPath, logoPathLight);
-        this._background.add_child(this._trash.actor);
-        this._background.add_child(this._showApps.actor);
-
-        this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
-        this._tooltip = new TooltipManager(
-            () => this._settings.get_string('position') as DockSide);
-        this._magnifier = new DockMagnifier(this.actor,
-            () => ['top', 'bottom'].includes(this._settings.get_string('position')),
-            () => !windowsProfile(this._settings) && this._settings.get_boolean('animation') && this._openMenuCount === 0);
-        this._launcherEntries = new LauncherEntryTracker(
-            (desktopId, count) => this._onLauncherEntryChanged(desktopId, count));
-
-        this._revealTrigger = new St.Widget({
-            name: 'lyraDockTrigger',
-            reactive: true,
-            can_focus: false,
-            opacity: 0,
-        });
-
-        this._syncChrome();
-
-        // Expose the dock through GNOME's Ctrl+Alt+Tab switcher and keep it
-        // revealed while keyboard/assistive focus is inside it. The manager
-        // unregisters the group automatically when the actor is destroyed.
-        Main.ctrlAltTabManager.addGroup(this.actor, 'Lyra Dock', 'view-app-grid-symbolic');
-        this._signals.connect(global.stage, 'notify::key-focus',
-            () => this._syncVisibility());
-
-        this._signals.connect(this.actor, 'enter-event', () => {
-            this._pointerOverDock = true;
-            this._syncVisibility();
-            return Clutter.EVENT_PROPAGATE;
-        });
-        this._signals.connect(this.actor, 'leave-event', () => {
-            this._pointerOverDock = false;
-            this._syncVisibility();
-            return Clutter.EVENT_PROPAGATE;
-        });
-        this._signals.connect(this._revealTrigger, 'enter-event', () => {
-            this._pointerOverTrigger = true;
-            this._syncVisibility();
-            return Clutter.EVENT_PROPAGATE;
-        });
-        this._signals.connect(this._revealTrigger, 'leave-event', () => {
-            this._pointerOverTrigger = false;
-            this._syncVisibility();
-            return Clutter.EVENT_PROPAGATE;
-        });
-        // Moving the dock does not reallocate its children, so refresh the
-        // minimize target while the dock itself slides in or out.
-        this._signals.connect(this.actor, 'notify::x',
-            () => this._updateIconGeometries());
-        this._signals.connect(this.actor, 'notify::y',
-            () => this._updateIconGeometries());
-        this._signals.connect(this.actor, 'notify::allocation',
-            () => this._updateIconGeometries());
-
-        this._signals.connect(this._favorites, 'changed', () => this._redisplay());
-        for (const profile of ['windows10', 'windows11'])
-            this._signals.connect(this._settings, `changed::${profile}-panel-apps`, () => {
-                if (windowsProfile(this._settings) === profile) this._queueRedisplay();
+        try {
+            console.debug('Sheliak: construindo dock');
+            this._settings = settings ?? new Gio.Settings({schema_id: SETTINGS_SCHEMA});
+            const logoPath = extensionPath
+                ? GLib.build_filenamev([extensionPath, 'icons', 'sheliak-logo-symbolic.svg'])
+                : null;
+            const logoPathLight = extensionPath
+                ? GLib.build_filenamev([extensionPath, 'icons', 'sheliak-logo-symbolic-dark.svg'])
+                : null;
+            this.actor = new St.BoxLayout({
+                // Match the Shell's native #dash selectors, including user themes.
+                name: 'dash',
+                style_class: 'sheliak-dock',
+                orientation: Clutter.Orientation.HORIZONTAL,
+                reactive: true,
+                can_focus: false,
+                x_align: Clutter.ActorAlign.CENTER,
             });
-        this._signals.connect(this._appSystem, 'app-state-changed',
-            () => this._queueRedisplay());
-        this._signals.connect(this._appSystem, 'installed-changed', () => {
-            console.debug('Sheliak: lista de apps instalados atualizada');
-            this._favorites.reload();
-            this._queueRedisplay();
-        });
-        this._signals.connect(Main.layoutManager, 'monitors-changed',
-            () => this._relayout());
-        if (shellIsStartingUp()) {
-            this._startupCompleteId = Main.layoutManager.connect('startup-complete', () => {
-                console.debug('Sheliak: startup-complete, atualizando lançadores');
-                Main.layoutManager.disconnect(this._startupCompleteId);
-                this._startupCompleteId = 0;
-                this._favorites.reload();
-                this._redisplay();
+            this._background = new St.BoxLayout({
+                style_class: 'dash-background dash-item-container',
+                orientation: Clutter.Orientation.HORIZONTAL,
+                x_expand: true,
+                y_expand: true,
             });
-        }
-        this._signals.connect(global.display, 'restacked',
-            () => this._syncVisibility());
-        this._signals.connect(global.display, 'window-created',
-            (_display, window: Meta.Window) => {
-                this._trackWindow(window);
+            this.actor.add_child(this._background);
+            this._appsBox = new St.BoxLayout({
+                style_class: 'sheliak-apps',
+                orientation: Clutter.Orientation.HORIZONTAL,
+            });
+            (this._appsBox as unknown as {_delegate?: unknown})._delegate = this;
+
+            this._leadingSpacer = new St.Widget({visible: false});
+            this._trailingSpacer = new St.Widget({visible: false});
+            this._background.add_child(this._leadingSpacer);
+            this._background.add_child(this._appsBox);
+            // Keep the system actions outside the aligned apps area. When the
+            // dock is extended, this spacer absorbs the remaining room after the
+            // apps, leaving Trash and Show Apps anchored at the end.
+            this._background.add_child(this._trailingSpacer);
+
+            this._separator = new St.Widget({style_class: 'dash-separator sheliak-separator'});
+            this._background.add_child(this._separator);
+
+            this._trash = new TrashIcon();
+            this._showApps = new ShowAppsButton(logoPath, logoPathLight);
+            this._background.add_child(this._trash.actor);
+            this._background.add_child(this._showApps.actor);
+
+            this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
+            this._tooltip = new TooltipManager(
+                () => this._settings.get_string('position') as DockSide);
+            this._magnifier = new DockMagnifier(this.actor,
+                () => ['top', 'bottom'].includes(this._settings.get_string('position')),
+                () => !windowsProfile(this._settings) && this._settings.get_boolean('animation') && this._openMenuCount === 0);
+            this._launcherEntries = new LauncherEntryTracker(
+                (desktopId, count) => this._onLauncherEntryChanged(desktopId, count));
+
+            this._revealTrigger = new St.Widget({
+                name: 'lyraDockTrigger',
+                reactive: true,
+                can_focus: false,
+                opacity: 0,
+            });
+
+            this._syncChrome();
+
+            // Expose the dock through GNOME's Ctrl+Alt+Tab switcher and keep it
+            // revealed while keyboard/assistive focus is inside it. The manager
+            // unregisters the group automatically when the actor is destroyed.
+            Main.ctrlAltTabManager.addGroup(this.actor, 'Lyra Dock', 'view-app-grid-symbolic');
+            this._signals.connect(global.stage, 'notify::key-focus',
+                () => this._syncVisibility());
+
+            this._signals.connect(this.actor, 'enter-event', () => {
+                this._pointerOverDock = true;
                 this._syncVisibility();
+                return Clutter.EVENT_PROPAGATE;
             });
-        this._signals.connect(global.workspace_manager, 'active-workspace-changed',
-            () => this._syncVisibility());
-        for (const windowActor of global.get_window_actors()) {
-            if (windowActor.meta_window)
-                this._trackWindow(windowActor.meta_window);
-        }
-        for (const key of ['position', 'icon-size', 'edge-margin', 'animation',
-            'extend-to-edges', 'content-alignment', 'extended-content-alignment', 'hide-mode', 'hide-delay',
-            'show-running', 'running-apps-position', 'show-trash',
-            'show-apps-button', 'fullscreen-hide', 'desktop-profile']) {
-            this._signals.connect(this._settings, `changed::${key}`,
-                () => {
-                    console.debug(`Sheliak: configuração alterada: ${key}`);
-                    this._applySettings();
-                });
-        }
-        this._signals.connect(St.ThemeContext.get_for_stage(global.stage), 'changed',
-            () => this._relayout());
-        this._signals.connect(Main.panel, 'style-changed',
-            () => this._syncPanelColors());
-        this._signals.connect(Main.panel, 'notify::height',
-            () => this._relayout());
+            this._signals.connect(this.actor, 'leave-event', () => {
+                this._pointerOverDock = false;
+                this._syncVisibility();
+                return Clutter.EVENT_PROPAGATE;
+            });
+            this._signals.connect(this._revealTrigger, 'enter-event', () => {
+                this._pointerOverTrigger = true;
+                this._syncVisibility();
+                return Clutter.EVENT_PROPAGATE;
+            });
+            this._signals.connect(this._revealTrigger, 'leave-event', () => {
+                this._pointerOverTrigger = false;
+                this._syncVisibility();
+                return Clutter.EVENT_PROPAGATE;
+            });
+            // Moving the dock does not reallocate its children, so refresh the
+            // minimize target while the dock itself slides in or out.
+            this._signals.connect(this.actor, 'notify::x',
+                () => this._updateIconGeometries());
+            this._signals.connect(this.actor, 'notify::y',
+                () => this._updateIconGeometries());
+            this._signals.connect(this.actor, 'notify::allocation',
+                () => this._updateIconGeometries());
 
-        this._syncPanelColors();
-        this._redisplay();
-        this._applySettings();
-        this._syncVisibility();
-        console.debug('Sheliak: dock construído e sinais conectados');
+            this._signals.connect(this._favorites, 'changed', () => this._redisplay());
+            for (const profile of ['windows10', 'windows11'])
+                this._signals.connect(this._settings, `changed::${profile}-panel-apps`, () => {
+                    if (windowsProfile(this._settings) === profile) this._queueRedisplay();
+                });
+            this._signals.connect(this._appSystem, 'app-state-changed',
+                () => this._queueRedisplay());
+            this._signals.connect(this._appSystem, 'installed-changed', () => {
+                console.debug('Sheliak: lista de apps instalados atualizada');
+                this._favorites.reload();
+                this._queueRedisplay();
+            });
+            this._signals.connect(Main.layoutManager, 'monitors-changed',
+                () => this._relayout());
+            if (shellIsStartingUp()) {
+                this._startupCompleteId = Main.layoutManager.connect('startup-complete', () => {
+                    console.debug('Sheliak: startup-complete, atualizando lançadores');
+                    Main.layoutManager.disconnect(this._startupCompleteId);
+                    this._startupCompleteId = 0;
+                    this._favorites.reload();
+                    this._redisplay();
+                });
+            }
+            this._signals.connect(global.display, 'restacked',
+                () => this._syncVisibility());
+            this._signals.connect(global.display, 'window-created',
+                (_display, window: Meta.Window) => {
+                    this._trackWindow(window);
+                    this._syncVisibility();
+                });
+            this._signals.connect(global.workspace_manager, 'active-workspace-changed',
+                () => this._syncVisibility());
+            for (const windowActor of global.get_window_actors()) {
+                if (windowActor.meta_window)
+                    this._trackWindow(windowActor.meta_window);
+            }
+            for (const key of ['position', 'icon-size', 'edge-margin', 'animation',
+                'extend-to-edges', 'content-alignment', 'extended-content-alignment', 'hide-mode', 'hide-delay',
+                'show-running', 'running-apps-position', 'show-trash',
+                'show-apps-button', 'fullscreen-hide', 'desktop-profile']) {
+                this._signals.connect(this._settings, `changed::${key}`,
+                    () => {
+                        console.debug(`Sheliak: configuração alterada: ${key}`);
+                        this._applySettings();
+                    });
+            }
+            this._signals.connect(St.ThemeContext.get_for_stage(global.stage), 'changed',
+                () => this._relayout());
+            this._signals.connect(Main.panel, 'style-changed',
+                () => this._syncPanelColors());
+            this._signals.connect(Main.panel, 'notify::height',
+                () => this._relayout());
+
+            this._syncPanelColors();
+            this._redisplay();
+            this._applySettings();
+            this._syncVisibility();
+            console.debug('Sheliak: dock construído e sinais conectados');
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
+        }
     }
 
     private _syncPanelColors(): void {
@@ -307,22 +313,22 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
         }
         this._signals.destroy();
         this._trackedWindows.clear();
-        this._magnifier.destroy();
-        this._launcherEntries.destroy();
+        this._magnifier?.destroy();
+        this._launcherEntries?.destroy();
         this._clearDragPlaceholder();
         for (const icon of this._icons.splice(0))
             icon.destroy();
-        this._trash.destroy();
-        this._showApps.destroy();
-        this._tooltip.destroy();
-        Main.layoutManager.removeChrome(this.actor);
-        this.actor.destroy();
-        // LayoutManager untracks a destroyed chrome actor. Keep it on stage
-        // until destruction so Clutter never allocates a detached trigger.
-        this._revealTrigger.destroy();
+        this._trash?.destroy();
+        this._showApps?.destroy();
+        this._tooltip?.destroy();
+        // LayoutManager untracks destroyed chrome actors. Destroy in place:
+        // partial construction may not have added them to uiGroup yet.
+        this.actor?.destroy();
+        this._revealTrigger?.destroy();
     }
 
     private _redisplay(): void {
+        if (this._destroyed) return;
         this._clearDragPlaceholder();
         this._magnifier.setIcons([]);
         for (const icon of this._icons.splice(0))
@@ -347,8 +353,8 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
                 this._settings.get_uint('icon-size'),
                 () => this._clearDragPlaceholder(),
                 this._tooltip, this._windowsFavorites);
-            icon.setBadge(this._launcherEntries.countFor(icon.appId));
             this._icons.push(icon);
+            icon.setBadge(this._launcherEntries.countFor(icon.appId));
             this._appsBox.add_child(icon.actor);
         }
         this._magnifier.setIcons([...this._icons, this._trash, this._showApps]);
@@ -362,6 +368,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     }
 
     private _queueRedisplay(): void {
+        if (this._destroyed) return;
         if (this._redisplayTimeoutId)
             GLib.source_remove(this._redisplayTimeoutId);
         this._redisplayTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
@@ -495,6 +502,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     }
 
     private _syncVisibility(): void {
+        if (this._destroyed) return;
         if (this._hideTimeoutId) {
             GLib.source_remove(this._hideTimeoutId);
             this._hideTimeoutId = 0;

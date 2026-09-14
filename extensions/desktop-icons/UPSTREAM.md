@@ -14,6 +14,14 @@ callbacks are captured per instance; disable preserves later overrides and
 retained wrappers delegate safely after release. Preserve these changes when
 updating upstream. See `docs/shell-compatibility.md` at repository root.
 
+Lyra also protects partial startup and D-Bus activation in `extension.js`:
+cleanup tolerates helpers not yet created, releases each resource independently,
+reports asynchronous errors through GNOME's extension manager, and rejects
+callbacks belonging to a previous enable generation. The TypeScript entrypoint
+releases its Dock subscriptions before calling upstream disable. Preserve these
+changes when importing a new tag; `tests/test-desktop-activation.mjs` and
+`tests/native-partial-activation/extension.js` exercise them.
+
 For updates, compare the next upstream tag against this commit, then apply and
 review the diff in this directory, preserving Lyra identity and rerunning
 gettext, schema, desktop file-operation and private GNOME tests. Do not replace

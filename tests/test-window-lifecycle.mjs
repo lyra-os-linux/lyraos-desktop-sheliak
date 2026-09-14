@@ -38,7 +38,7 @@ function fixture(role) {
         _windowSignals: new Map(), _destroyed: false, _hideTimeoutId: 0, _redisplayTimeoutId: 0,
         _startupCompleteId: 0, _favoriteLaterId: 0, _icons: [],
         _syncVisibility() {}, _syncFloating() {}, _clearDragPlaceholder() {},
-        _magnifier: {destroy() {}}, _launcherEntries: {destroy() {}}, _trash: {destroy() {}},
+        _magnifier: {destroy() {}, refresh() {}}, _launcherEntries: {destroy() {}}, _trash: {destroy() {}},
         _showApps: {destroy() {}}, _tooltip: {destroy() {}},
         actor: {destroy() { destroyedActors++; }}, _revealTrigger: {destroy() { destroyedActors++; }}});
     return {manager, destroyedActors: () => destroyedActors};
@@ -80,4 +80,19 @@ test('disabling Dock with live windows releases references as well as handlers',
     assert.equal(manager._trackedWindows.size, 0);
     assert.equal(late.callbacks.size, 0);
     assert.equal(destroyedActors(), 2, 'actors must be destroyed only once');
+});
+
+
+test('Dock teardown ignores popup-close and queued redisplay callbacks after releasing resources', () => {
+    const {manager, destroyedActors} = fixture('dock');
+    delete manager._syncVisibility; // Exercise the actual callback path.
+    manager._openMenuCount = 1;
+    manager._icons = [{destroy() { manager._onMenuStateChanged(false); }}];
+    manager.destroy();
+    manager._queueRedisplay();
+    manager._redisplay();
+    assert.equal(manager._openMenuCount, 0);
+    assert.equal(manager._hideTimeoutId, 0);
+    assert.equal(manager._redisplayTimeoutId, 0);
+    assert.equal(destroyedActors(), 2);
 });

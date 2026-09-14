@@ -16,21 +16,27 @@ export class ShowAppsButton {
     private _action: (() => void) | null = null;
 
     constructor(iconPath: string | null, lightIconPath: string | null) {
-        this._darkIcon = iconPath ? Gio.icon_new_for_string(iconPath) as never : null;
-        this._lightIcon = lightIconPath ? Gio.icon_new_for_string(lightIconPath) as never : null;
-        this._icon = this._darkIcon
-            ? new St.Icon({gicon: this._darkIcon, icon_size: 32})
-            : new St.Icon({icon_name: 'view-app-grid-symbolic', icon_size: 32});
-        this.actor = new St.Button({
-            style_class: 'show-apps sheliak-system-button sheliak-show-apps-button',
-            child: new St.Bin({style_class: 'overview-icon', child: this._icon}),
-            reactive: true,
-            can_focus: true,
-            track_hover: true,
-            accessible_name: _('Show Applications'),
-        });
-        this.actor.connect('clicked', () => this._action ? this._action() : showApplications());
-        this.actor.connect('style-changed', () => this._syncTheme());
+        try {
+            this._darkIcon = iconPath ? Gio.icon_new_for_string(iconPath) as never : null;
+            this._lightIcon = lightIconPath ? Gio.icon_new_for_string(lightIconPath) as never : null;
+            this._icon = this._darkIcon
+                ? new St.Icon({gicon: this._darkIcon, icon_size: 32})
+                : new St.Icon({icon_name: 'view-app-grid-symbolic', icon_size: 32});
+            this.actor = new St.Button({
+                style_class: 'show-apps sheliak-system-button sheliak-show-apps-button',
+                child: new St.Bin({style_class: 'overview-icon', child: this._icon}),
+                reactive: true,
+                can_focus: true,
+                track_hover: true,
+                accessible_name: _('Show Applications'),
+            });
+            this.actor.connect('clicked', () => this._action ? this._action() : showApplications());
+            this.actor.connect('style-changed', () => this._syncTheme());
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
+        }
     }
 
     setAction(action: (() => void) | null): void {
@@ -49,6 +55,6 @@ export class ShowAppsButton {
     }
 
     destroy(): void {
-        this.actor.destroy();
+        this.actor?.destroy();
     }
 }

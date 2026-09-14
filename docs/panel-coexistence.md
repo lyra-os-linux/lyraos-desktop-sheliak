@@ -42,7 +42,7 @@ ator ao pai anterior, evitando deixá-lo destacado do Shell.
 - A matriz usa atores estrangeiros e falhas controladas em GNOME privado. Não
   certifica todas as extensões do catálogo, X11 ou outra versão do Shell.
 - A rodada não encerra os trabalhos gerais de janelas liberadas (#7), posse
-  dos handlers de animação (#9) ou falhas parciais de outros componentes (#10).
+  da [integração de animações (#9)](animation-ownership.md) ou falhas parciais de outros componentes (#10).
 
 ## Verificação
 

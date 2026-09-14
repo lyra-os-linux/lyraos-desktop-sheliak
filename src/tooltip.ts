@@ -17,11 +17,17 @@ export class TooltipManager {
     private _showing = false;
 
     constructor(private _getSide: () => DockSide) {
-        this._label = new St.Label({
-            style_class: 'dash-label sheliak-tooltip',
-            visible: false,
-        });
-        Main.layoutManager.addChrome(this._label, {affectsInputRegion: false});
+        try {
+            this._label = new St.Label({
+                style_class: 'dash-label sheliak-tooltip',
+                visible: false,
+            });
+            Main.layoutManager.addChrome(this._label, {affectsInputRegion: false});
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
+        }
     }
 
     show(source: St.Widget, text: string): void {
@@ -46,8 +52,7 @@ export class TooltipManager {
 
     destroy(): void {
         this.hide();
-        Main.layoutManager.removeChrome(this._label);
-        this._label.destroy();
+        this._label?.destroy();
     }
 
     private _showNow(source: St.Widget, text: string): void {

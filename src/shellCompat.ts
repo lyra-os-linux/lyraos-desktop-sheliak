@@ -1,4 +1,5 @@
-import type Clutter from 'gi://Clutter';
+import Clutter from 'gi://Clutter';
+import type Meta from 'gi://Meta';
 import type St from 'gi://St';
 import GObject from 'gi://GObject';
 
@@ -208,22 +209,41 @@ export function bottomPanelCapabilities() {
     };
 }
 
-/** Capability checks only. Exact ownership of compositor handlers is #9. */
+type AnimationWindowManager = {
+    _shellwm: typeof global.window_manager;
+    _shouldAnimateActor(actor: Meta.WindowActor, types: Meta.WindowType[]): boolean;
+    _minimizing: Set<Meta.WindowActor>;
+    _unminimizing: Set<Meta.WindowActor>;
+};
+
+/** Preflight the native request path; signal IDs describe events, not handlers.
+ * GNOME's bound signal callbacks cannot be recovered by matching their names.
+ * Leave a pre-existing instance override to its owner and use native effects.
+ */
 export function animationCapabilities() {
     const shellwm = global.window_manager;
-    if (!hasMethods(shellwm, ['completed_minimize', 'completed_unminimize',
-        'block_signal_handler', 'unblock_signal_handler', 'connect', 'disconnect'])
-        || typeof GObject.signal_handler_find !== 'function'
-        || typeof GObject.signal_handler_is_connected !== 'function')
+    const wm = Main.wm as unknown as AnimationWindowManager;
+    if (!hasMethods(shellwm, ['completed_minimize', 'completed_unminimize', 'connect', 'disconnect'])
+        || !hasMethods(wm, ['_shouldAnimateActor']) || wm._shellwm !== shellwm
+        || Object.hasOwn(wm, '_shouldAnimateActor')
+        || !(wm._minimizing instanceof Set) || !(wm._unminimizing instanceof Set)
+        || !hasMethods(Clutter.Actor.prototype, ['ease'])
+        || typeof GObject.signal_lookup !== 'function'
+        || typeof GObject.signal_get_invocation_hint !== 'function')
         return unavailable('compositor animation bridge');
     try {
-        const ids = ['minimize', 'unminimize'].map(signalId => Number(
-            GObject.signal_handler_find(shellwm as never, {signalId} as never)));
-        if (ids.some(id => !id || !GObject.signal_handler_is_connected(shellwm as never, id))
-            || new Set(ids).size !== ids.length)
-            return unavailable('compositor animation handlers');
-        return {shellwm, ids};
+        const ids = ['minimize', 'unminimize'].map(name =>
+            GObject.signal_lookup(name, shellwm.constructor as never));
+        if (ids.some(id => !id) || ids[0] === ids[1])
+            return unavailable('compositor animation events');
+        return {
+            shellwm, wm, nativeEase: (Clutter.Actor.prototype as unknown as {ease: Function}).ease,
+            phase(): boolean | null {
+                const id = GObject.signal_get_invocation_hint(shellwm as never)?.signal_id;
+                return id === ids[0] ? true : id === ids[1] ? false : null;
+            },
+        };
     } catch (error) {
-        return unavailable(`compositor animation handlers: ${error}`);
+        return unavailable(`compositor animation events: ${error}`);
     }
 }

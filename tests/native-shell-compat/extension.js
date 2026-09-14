@@ -126,7 +126,7 @@ export default class CompatibilityProbe extends Extension {
         ext('animations').disable();
         const connect = global.window_manager.connect;
         masked(global.window_manager, 'connect', function (signal, callback) {
-            if (signal === 'unminimize') throw Error('Injected connection failure');
+            if (signal === 'kill-window-effects') throw Error('Injected connection failure');
             return connect.call(this, signal, callback);
         }, () => ext('animations').enable());
         await this.nativeAnimationWorks();

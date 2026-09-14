@@ -9,7 +9,7 @@
     "clean": "rm -rf dist",
     "build": "node scripts/build.mjs",
     "check": "tsc --noEmit",
-    "test": "npm run build && node tests/test-i18n.mjs && node tests/test-provider.mjs && python3 -m unittest discover -s tests -p \"test_suite*.py\" -v && node --test tests/test-desktop-shell-compat.mjs tests/test-shell-compat.mjs tests/test-top-bar.mjs tests/test-window-lifecycle.mjs tests/test-panel-theme.mjs tests/test-dock-magnifier.mjs tests/test-dock-layout.mjs tests/test-app-activation.mjs tests/test-profile-favorites.mjs tests/test-tile-layout.mjs",
+    "test": "npm run build && node tests/test-i18n.mjs && node tests/test-provider.mjs && python3 -m unittest discover -s tests -p \"test_suite*.py\" -v && node --test tests/test-desktop-shell-compat.mjs tests/test-desktop-activation.mjs tests/test-shell-compat.mjs tests/test-top-bar.mjs tests/test-window-lifecycle.mjs tests/test-window-animations.mjs tests/test-panel-theme.mjs tests/test-dock-magnifier.mjs tests/test-dock-layout.mjs tests/test-app-activation.mjs tests/test-profile-favorites.mjs tests/test-tile-layout.mjs",
     "pack": "npm run build && tar --zstd -cf sheliak-extensions.tar.zst -C dist/extensions ."
   },
   "devDependencies": {

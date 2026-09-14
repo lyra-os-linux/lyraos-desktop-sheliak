@@ -43,12 +43,18 @@ export class AppContextMenu {
 
     constructor(source: St.Widget, app: Shell.App, private _pins?: WindowsFavorites,
         private _surface: 'panel' | 'menu' = 'panel', private _tileSize?: TileSizeAction) {
-        this._app = app;
-        this._favorites = _pins?.panel ?? AppFavorites.getAppFavorites();
-        this.menu = new AppPopupMenu(source, () => this.toggle());
-        this.menu.actor.add_style_class_name('sheliak-menu');
-        Main.uiGroup.add_child(this.menu.actor);
-        this.menu.actor.hide();
+        try {
+            this._app = app;
+            this._favorites = _pins?.panel ?? AppFavorites.getAppFavorites();
+            this.menu = new AppPopupMenu(source, () => this.toggle());
+            this.menu.actor.add_style_class_name('sheliak-menu');
+            Main.uiGroup.add_child(this.menu.actor);
+            this.menu.actor.hide();
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
+        }
     }
 
     rebuild(): void {
@@ -145,7 +151,7 @@ export class AppContextMenu {
     }
 
     destroy(): void {
-        this.menu.destroy();
+        this.menu?.destroy();
     }
 
     private _windows(): Meta.Window[] {

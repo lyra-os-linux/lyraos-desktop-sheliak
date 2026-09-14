@@ -43,151 +43,157 @@ export class StartMenu {
     private _allColumn: St.BoxLayout;
 
     constructor(button: St.Button, anchor: St.Widget, profile: WindowsProfile, settings: Gio.Settings) {
-        this._profile = profile;
-        this._favorites = windowsFavorites(settings, profile);
-        this._tileSizes = new TileSizes(settings);
-        this.menu = new PopupMenu.PopupMenu(profile === 'windows11' ? anchor : button,
-            profile === 'windows11' ? 0.5 : 0, St.Side.BOTTOM);
-        if (profile === 'windows10') this.menu.setSourceAlignment(0);
-        for (const style of ['sheliak-start-menu', profile])
-            this.menu.actor.add_style_class_name(style);
-        Main.uiGroup.add_child(this.menu.actor);
-        this.menu.actor.hide();
-        const manager = new PopupMenu.PopupMenuManager(button);
-        manager.addMenu(this.menu);
-        this._contextManager = new PopupMenu.PopupMenuManager(button);
-        const item = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
-        // This is a container of independently interactive controls, not a
-        // disabled application row. Do not inherit the insensitive row color.
-        item.remove_style_class_name('popup-menu-item');
-        item.remove_style_class_name('popup-inactive-menu-item');
-        this._content = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL,
-            style_class: 'sheliak-start-content', x_expand: true});
-        item.add_child(this._content);
-        this.menu.addMenuItem(item);
+        try {
+            this._profile = profile;
+            this._favorites = windowsFavorites(settings, profile);
+            this._tileSizes = new TileSizes(settings);
+            this.menu = new PopupMenu.PopupMenu(profile === 'windows11' ? anchor : button,
+                profile === 'windows11' ? 0.5 : 0, St.Side.BOTTOM);
+            if (profile === 'windows10') this.menu.setSourceAlignment(0);
+            for (const style of ['sheliak-start-menu', profile])
+                this.menu.actor.add_style_class_name(style);
+            Main.uiGroup.add_child(this.menu.actor);
+            this.menu.actor.hide();
+            const manager = new PopupMenu.PopupMenuManager(button);
+            manager.addMenu(this.menu);
+            this._contextManager = new PopupMenu.PopupMenuManager(button);
+            const item = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
+            // This is a container of independently interactive controls, not a
+            // disabled application row. Do not inherit the insensitive row color.
+            item.remove_style_class_name('popup-menu-item');
+            item.remove_style_class_name('popup-inactive-menu-item');
+            this._content = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL,
+                style_class: 'sheliak-start-content', x_expand: true});
+            item.add_child(this._content);
+            this.menu.addMenuItem(item);
 
-        this.entry = new St.Entry({hint_text: _('Search applications…'),
-            accessible_name: _('Search applications'), can_focus: true,
-            style_class: 'search-entry sheliak-start-search', x_expand: true});
-        this.entry.set_primary_icon(new St.Icon({icon_name: 'edit-find-symbolic', icon_size: 16}));
-        this._content.add_child(this.entry);
+            this.entry = new St.Entry({hint_text: _('Search applications…'),
+                accessible_name: _('Search applications'), can_focus: true,
+                style_class: 'search-entry sheliak-start-search', x_expand: true});
+            this.entry.set_primary_icon(new St.Icon({icon_name: 'edit-find-symbolic', icon_size: 16}));
+            this._content.add_child(this.entry);
 
-        const headings = new St.BoxLayout({style_class: 'sheliak-start-headings'});
-        this._pinnedHeading = new St.Label({text: _('Pinned'), x_expand: true});
-        this._allToggle = new St.Button({label: _('All applications'), can_focus: true,
-            style_class: 'button sheliak-start-all'});
-        headings.add_child(this._pinnedHeading);
-        headings.add_child(this._allToggle);
-        this._content.add_child(headings);
-        this._signals.connect(this._allToggle, 'clicked', () => {
-            this._allVisible = !this._allVisible;
-            this._render();
-        });
-
-        const body = new St.BoxLayout({orientation: profile === 'windows10'
-            ? Clutter.Orientation.HORIZONTAL : Clutter.Orientation.VERTICAL,
-        style_class: 'sheliak-start-body', x_expand: true, y_expand: true});
-        this._content.add_child(body);
-        const allColumn = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL,
-            x_expand: true, y_expand: true});
-        this._allColumn = allColumn;
-        this._allHeading = new St.Label({text: _('All applications'),
-            style_class: 'sheliak-start-heading'});
-        allColumn.add_child(this._allHeading);
-        this._results = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL,
-            x_expand: true, style_class: 'sheliak-start-results'});
-        const scroll = new St.ScrollView({x_expand: true, y_expand: true,
-            style_class: 'sheliak-start-scroll', overlay_scrollbars: true});
-        this._resultsScroll = scroll;
-        scroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
-        scroll.set_child(this._results);
-        allColumn.add_child(scroll);
-        body.add_child(allColumn);
-        this._pinned = new St.Widget({layout_manager: new Clutter.GridLayout(),
-            x_expand: profile !== 'windows10', x_align: Clutter.ActorAlign.START,
-            y_align: Clutter.ActorAlign.START,
-            style_class: 'sheliak-start-pinned'});
-        if (profile === 'windows10') {
-            const grid = this._pinned.layout_manager as Clutter.GridLayout;
-            grid.set_column_homogeneous(true);
-            grid.set_row_homogeneous(true);
-        }
-        // Favorites can exceed the initial number of cards. Keep every pin reachable.
-        const pinnedBox = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true});
-        pinnedBox.add_child(this._pinned);
-        const pinnedScroll = new St.ScrollView({x_expand: true, y_expand: true,
-            style_class: 'sheliak-start-scroll', overlay_scrollbars: true});
-        this._pinnedScroll = pinnedScroll;
-        pinnedScroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
-        pinnedScroll.set_child(pinnedBox);
-        body.add_child(pinnedScroll);
-        this._signals.connect(this.menu, 'open-state-changed', (_menu, open: boolean) => {
-            if (open) {
-                this._allVisible = false;
-                this.entry.set_text('');
-                this._reload();
-                const monitor = Main.layoutManager.primaryMonitor;
-                if (monitor) {
-                    // CSS dimensions scale with the theme; explicit actor sizes
-                    // use stage pixels and must follow the same factor.
-                    const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-                    this._content.set_width(Math.min((profile === 'windows10' ? 680 : 620) * scale, monitor.width - 40 * scale));
-                    this._content.set_height(Math.min(570 * scale, monitor.height - 140 * scale));
-                }
-                this.entry.grab_key_focus();
-            } else {
-                for (const context of this._contextMenus) context.close();
-            }
-        });
-        this._signals.connect(this.entry.clutter_text, 'text-changed', () => this._render());
-        this._signals.connect(this.entry.clutter_text, 'activate', () => {
-            const query = this.entry.get_text().trim().toLocaleLowerCase();
-            const first = this._matching(query)[0];
-            if (first) this._launch(first);
-        });
-        this._signals.connect(this.entry.clutter_text, 'key-press-event', (_actor, event: Clutter.Event) => {
-            if (event.get_key_symbol() === Clutter.KEY_Down) {
-                this._firstResult?.grab_key_focus();
-                return Clutter.EVENT_STOP;
-            }
-            return Clutter.EVENT_PROPAGATE;
-        });
-        this._signals.connect(this._appSystem, 'installed-changed', () => this._reload());
-        const queueRender = () => {
-            // Finish the popup action before replacing its source actor.
-            if (this._renderId) return;
-            this._renderId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                this._renderId = 0;
+            const headings = new St.BoxLayout({style_class: 'sheliak-start-headings'});
+            this._pinnedHeading = new St.Label({text: _('Pinned'), x_expand: true});
+            this._allToggle = new St.Button({label: _('All applications'), can_focus: true,
+                style_class: 'button sheliak-start-all'});
+            headings.add_child(this._pinnedHeading);
+            headings.add_child(this._allToggle);
+            this._content.add_child(headings);
+            this._signals.connect(this._allToggle, 'clicked', () => {
+                this._allVisible = !this._allVisible;
                 this._render();
-                return GLib.SOURCE_REMOVE;
             });
-        };
-        this._signals.connect(settings, `changed::${profile}-menu-apps`, queueRender);
-        if (profile === 'windows10')
-            this._signals.connect(settings, 'changed::windows10-tile-sizes', queueRender);
 
-        const footer = new St.BoxLayout({style_class: 'sheliak-start-footer'});
-        const user = new St.Label({text: GLib.get_real_name() || GLib.get_user_name(),
-            x_expand: true, y_align: Clutter.ActorAlign.CENTER});
-        footer.add_child(user);
-        const settingsButton = this._actionButton(_('Settings'), 'preferences-system-symbolic', () => {
-            const app = this._appSystem.lookup_app('vega.desktop')
-                ?? this._appSystem.lookup_app('org.gnome.Settings.desktop');
-            if (app) this._launch(app);
-        });
-        footer.add_child(settingsButton);
-        const power = this._actionButton(_('Power'), 'system-shutdown-symbolic', () => {
-            this.menu.close();
-            (SystemActions.getDefault() as unknown as {activateAction(id: string): void}).activateAction('power-off');
-        });
-        footer.add_child(power);
-        const lock = this._actionButton(_('Lock'), 'system-lock-screen-symbolic', () => {
-            this.menu.close();
-            (SystemActions.getDefault() as unknown as {activateAction(id: string): void}).activateAction('lock-screen');
-        });
-        footer.add_child(lock);
-        this._content.add_child(footer);
-        this._reload();
+            const body = new St.BoxLayout({orientation: profile === 'windows10'
+                ? Clutter.Orientation.HORIZONTAL : Clutter.Orientation.VERTICAL,
+            style_class: 'sheliak-start-body', x_expand: true, y_expand: true});
+            this._content.add_child(body);
+            const allColumn = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL,
+                x_expand: true, y_expand: true});
+            this._allColumn = allColumn;
+            this._allHeading = new St.Label({text: _('All applications'),
+                style_class: 'sheliak-start-heading'});
+            allColumn.add_child(this._allHeading);
+            this._results = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL,
+                x_expand: true, style_class: 'sheliak-start-results'});
+            const scroll = new St.ScrollView({x_expand: true, y_expand: true,
+                style_class: 'sheliak-start-scroll', overlay_scrollbars: true});
+            this._resultsScroll = scroll;
+            scroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
+            scroll.set_child(this._results);
+            allColumn.add_child(scroll);
+            body.add_child(allColumn);
+            this._pinned = new St.Widget({layout_manager: new Clutter.GridLayout(),
+                x_expand: profile !== 'windows10', x_align: Clutter.ActorAlign.START,
+                y_align: Clutter.ActorAlign.START,
+                style_class: 'sheliak-start-pinned'});
+            if (profile === 'windows10') {
+                const grid = this._pinned.layout_manager as Clutter.GridLayout;
+                grid.set_column_homogeneous(true);
+                grid.set_row_homogeneous(true);
+            }
+            // Favorites can exceed the initial number of cards. Keep every pin reachable.
+            const pinnedBox = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true});
+            pinnedBox.add_child(this._pinned);
+            const pinnedScroll = new St.ScrollView({x_expand: true, y_expand: true,
+                style_class: 'sheliak-start-scroll', overlay_scrollbars: true});
+            this._pinnedScroll = pinnedScroll;
+            pinnedScroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
+            pinnedScroll.set_child(pinnedBox);
+            body.add_child(pinnedScroll);
+            this._signals.connect(this.menu, 'open-state-changed', (_menu, open: boolean) => {
+                if (open) {
+                    this._allVisible = false;
+                    this.entry.set_text('');
+                    this._reload();
+                    const monitor = Main.layoutManager.primaryMonitor;
+                    if (monitor) {
+                        // CSS dimensions scale with the theme; explicit actor sizes
+                        // use stage pixels and must follow the same factor.
+                        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+                        this._content.set_width(Math.min((profile === 'windows10' ? 680 : 620) * scale, monitor.width - 40 * scale));
+                        this._content.set_height(Math.min(570 * scale, monitor.height - 140 * scale));
+                    }
+                    this.entry.grab_key_focus();
+                } else {
+                    for (const context of this._contextMenus) context.close();
+                }
+            });
+            this._signals.connect(this.entry.clutter_text, 'text-changed', () => this._render());
+            this._signals.connect(this.entry.clutter_text, 'activate', () => {
+                const query = this.entry.get_text().trim().toLocaleLowerCase();
+                const first = this._matching(query)[0];
+                if (first) this._launch(first);
+            });
+            this._signals.connect(this.entry.clutter_text, 'key-press-event', (_actor, event: Clutter.Event) => {
+                if (event.get_key_symbol() === Clutter.KEY_Down) {
+                    this._firstResult?.grab_key_focus();
+                    return Clutter.EVENT_STOP;
+                }
+                return Clutter.EVENT_PROPAGATE;
+            });
+            this._signals.connect(this._appSystem, 'installed-changed', () => this._reload());
+            const queueRender = () => {
+                // Finish the popup action before replacing its source actor.
+                if (this._renderId) return;
+                this._renderId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                    this._renderId = 0;
+                    this._render();
+                    return GLib.SOURCE_REMOVE;
+                });
+            };
+            this._signals.connect(settings, `changed::${profile}-menu-apps`, queueRender);
+            if (profile === 'windows10')
+                this._signals.connect(settings, 'changed::windows10-tile-sizes', queueRender);
+
+            const footer = new St.BoxLayout({style_class: 'sheliak-start-footer'});
+            const user = new St.Label({text: GLib.get_real_name() || GLib.get_user_name(),
+                x_expand: true, y_align: Clutter.ActorAlign.CENTER});
+            footer.add_child(user);
+            const settingsButton = this._actionButton(_('Settings'), 'preferences-system-symbolic', () => {
+                const app = this._appSystem.lookup_app('vega.desktop')
+                    ?? this._appSystem.lookup_app('org.gnome.Settings.desktop');
+                if (app) this._launch(app);
+            });
+            footer.add_child(settingsButton);
+            const power = this._actionButton(_('Power'), 'system-shutdown-symbolic', () => {
+                this.menu.close();
+                (SystemActions.getDefault() as unknown as {activateAction(id: string): void}).activateAction('power-off');
+            });
+            footer.add_child(power);
+            const lock = this._actionButton(_('Lock'), 'system-lock-screen-symbolic', () => {
+                this.menu.close();
+                (SystemActions.getDefault() as unknown as {activateAction(id: string): void}).activateAction('lock-screen');
+            });
+            footer.add_child(lock);
+            this._content.add_child(footer);
+            this._reload();
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
+        }
     }
 
     toggle(): void { this.menu.toggle(); }
@@ -197,7 +203,7 @@ export class StartMenu {
         this._renderId = 0;
         this._signals.destroy();
         for (const context of this._contextMenus.splice(0)) context.destroy();
-        this.menu.destroy();
+        this.menu?.destroy();
     }
 
     private _actionButton(name: string, icon: string, action: () => void): St.Button {

@@ -9,7 +9,7 @@ const {outputFiles} = await build({entryPoints: ['src/shellCompat.ts'], bundle: 
             builder.onResolve({filter: /^(gi|resource):\/\//}, args => ({path: args.path, namespace: 'fixture'}));
             builder.onLoad({filter: /.*/, namespace: 'fixture'}, args => ({contents:
                 args.path.startsWith('gi://') ? `export default fixtures[${JSON.stringify(args.path.slice(5))}];`
-                    : 'export const {panel, layoutManager, overview, sessionMode, extensionManager} = fixtures.Main;'}));
+                    : 'export const {panel, layoutManager, overview, sessionMode, extensionManager, wm} = fixtures.Main;'}));
         },
     }]});
 
@@ -31,10 +31,13 @@ function fixture() {
         extensionManager: {lookup() {}, connect() {}, disconnect() {}}};
     const shellwm = {completed_minimize() {}, completed_unminimize() {}, connect() {}, disconnect() {},
         block_signal_handler() { calls.push('block'); }, unblock_signal_handler() { calls.push('unblock'); }};
-    const GObject = {signal_handler_find(_obj, {signalId}) { return signalId === 'minimize' ? 11 : 12; },
-        signal_handler_is_connected() { return true; }};
+    Main.wm = Object.assign(Object.create({_shouldAnimateActor() { return true; }}), {
+        _shellwm: shellwm, _minimizing: new Set(), _unminimizing: new Set()});
+    const Clutter = {Actor: class { ease() {} }};
+    const GObject = {signal_lookup(name) { return name === 'minimize' ? 11 : 12; },
+        signal_get_invocation_hint() { return null; }};
     const compat = runInNewContext(`${outputFiles[0].text}\nCompat;`, {
-        fixtures: {Main, GObject}, global: {window_manager: shellwm},
+        fixtures: {Main, GObject, Clutter}, Set, global: {window_manager: shellwm},
         console: {warn: message => warnings.push(message), error: message => warnings.push(message)},
     });
     return {compat, Main, layout, calls, warnings, original, handlers, shellwm, GObject};
@@ -156,18 +159,28 @@ test('optional popup and invalid extension discovery are rejected', () => {
     delete Main.extensionManager.lookup;
     assert.equal(compat.extensionManager(), null);
 });
-test('animation preflight finds both handlers without blocking any of them', () => {
-    const {compat, calls} = fixture();
-    assert.deepEqual(Array.from(compat.animationCapabilities().ids), [11, 12]);
+test('animation preflight recognizes the event context without inspecting or blocking handlers', () => {
+    const {compat, calls, GObject} = fixture();
+    const cap = compat.animationCapabilities();
+    assert.equal(cap.phase(), null);
+    GObject.signal_get_invocation_hint = () => ({signal_id: 11});
+    assert.equal(cap.phase(), true);
+    GObject.signal_get_invocation_hint = () => ({signal_id: 12});
+    assert.equal(cap.phase(), false);
+    GObject.signal_get_invocation_hint = () => ({signal_id: 13});
+    assert.equal(cap.phase(), null);
     assert.deepEqual(calls, []);
 });
-for (const problem of ['completion', 'duplicate', 'disconnected', 'lookup-throws']) {
+for (const problem of ['completion', 'duplicate', 'missing-hint', 'lookup-throws', 'foreign-decision', 'missing-set', 'foreign-wm']) {
     test(`animation ${problem} keeps native handlers untouched`, () => {
-        const {compat, shellwm, GObject, calls} = fixture();
+        const {compat, shellwm, Main, GObject, calls} = fixture();
         if (problem === 'completion') delete shellwm.completed_minimize;
-        if (problem === 'duplicate') GObject.signal_handler_find = () => 11;
-        if (problem === 'disconnected') GObject.signal_handler_is_connected = () => false;
-        if (problem === 'lookup-throws') GObject.signal_handler_find = () => { throw Error('missing signal'); };
+        if (problem === 'duplicate') GObject.signal_lookup = () => 11;
+        if (problem === 'missing-hint') delete GObject.signal_get_invocation_hint;
+        if (problem === 'lookup-throws') GObject.signal_lookup = () => { throw Error('missing signal'); };
+        if (problem === 'foreign-decision') Main.wm._shouldAnimateActor = () => true;
+        if (problem === 'missing-set') delete Main.wm._minimizing;
+        if (problem === 'foreign-wm') Main.wm._shellwm = {};
         assert.equal(compat.animationCapabilities(), null);
         assert.deepEqual(calls, []);
     });

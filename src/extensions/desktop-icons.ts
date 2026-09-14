@@ -44,7 +44,8 @@ export default class LyraDesktopIcons extends DesktopIcons {
                 sync();
             });
         } catch (error) {
-            this.disable();
+            try { this.disable(); }
+            catch (cleanup) { console.error(`Lyra Desktop Icons: activation cleanup: ${cleanup}`); }
             throw error;
         }
     }

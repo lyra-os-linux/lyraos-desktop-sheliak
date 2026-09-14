@@ -100,7 +100,7 @@ As evidências de uma versão devem guardar também versões GNOME/Mutter,
 hashes dos bundles/fontes e o pacote efetivamente instalado. A qualificação
 cobre a versão Wayland testada e essa carga por minutos; não certifica outra
 versão, X11, todas as extensões de terceiros ou uma sessão de vários dias.
-Posse de handlers de animação (#9) e falhas genéricas de ativação (#10) têm
+[Integração de animações (#9)](animation-ownership.md) e falhas genéricas de ativação (#10) têm
 acompanhamento próprio.
 
 ## Diagnóstico da base GNOME

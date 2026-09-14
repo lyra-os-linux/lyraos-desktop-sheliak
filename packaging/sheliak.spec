@@ -53,7 +53,7 @@ done
 
 %files
 %license LICENSE extensions/desktop-icons/COPYING
-%doc README.md docs/extension-suite-contracts.md docs/shell-compatibility.md docs/panel-coexistence.md docs/window-lifecycle.md extensions/desktop-icons/UPSTREAM.md
+%doc README.md docs/extension-suite-contracts.md docs/shell-compatibility.md docs/panel-coexistence.md docs/window-lifecycle.md docs/animation-ownership.md docs/partial-activation.md extensions/desktop-icons/UPSTREAM.md
 %dir %{_datadir}/gnome-shell
 %dir %{_datadir}/gnome-shell/extensions
 %{_datadir}/gnome-shell/extensions/dock@lyraos.com.br

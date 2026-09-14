@@ -138,66 +138,72 @@ class ApplicationsIndicator {
     constructor(settings: Gio.Settings, extensionPath?: string,
         private _mode: 'menus' | 'search' = 'menus',
         private _createSearch?: () => SearchIndicatorView) {
-        this._settings = settings;
-        this.button = new PanelMenu.Button(0.5, _('Applications'));
-        this.button.add_style_class_name('sheliak-panel-indicator');
-        (this.button.menu as PopupMenu.PopupMenu).actor
-            .add_style_class_name('sheliak-panel-menu');
-        this._categoryMenuManager = new PopupMenu.PopupMenuManager(this.button);
+        try {
+            this._settings = settings;
+            this.button = new PanelMenu.Button(0.5, _('Applications'));
+            this.button.add_style_class_name('sheliak-panel-indicator');
+            (this.button.menu as PopupMenu.PopupMenu).actor
+                .add_style_class_name('sheliak-panel-menu');
+            this._categoryMenuManager = new PopupMenu.PopupMenuManager(this.button);
 
-        if (extensionPath) {
-            this._darkIcon = Gio.icon_new_for_string(GLib.build_filenamev(
-                [extensionPath, 'icons', 'sheliak-logo-symbolic.svg'])) as never;
-            this._lightIcon = Gio.icon_new_for_string(GLib.build_filenamev(
-                [extensionPath, 'icons', 'sheliak-logo-symbolic-dark.svg'])) as never;
-        }
-        const box = new St.BoxLayout({
-            style_class: 'panel-status-menu-box',
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        this._icon = this._darkIcon
-            ? new St.Icon({
-                gicon: this._darkIcon,
-                style_class: 'system-status-icon',
-                y_align: Clutter.ActorAlign.CENTER,
-            })
-            : new St.Icon({
-                icon_name: 'view-app-grid-symbolic',
-                style_class: 'system-status-icon',
+            if (extensionPath) {
+                this._darkIcon = Gio.icon_new_for_string(GLib.build_filenamev(
+                    [extensionPath, 'icons', 'sheliak-logo-symbolic.svg'])) as never;
+                this._lightIcon = Gio.icon_new_for_string(GLib.build_filenamev(
+                    [extensionPath, 'icons', 'sheliak-logo-symbolic-dark.svg'])) as never;
+            }
+            const box = new St.BoxLayout({
+                style_class: 'panel-status-menu-box',
                 y_align: Clutter.ActorAlign.CENTER,
             });
-        box.add_child(this._icon);
-        // Lyra Flutuante keeps only the Lyra logo in the top-left application menu.
-        // The button retains its translated accessible name.
-        if (settings.get_string('desktop-profile') !== 'macos') {
-            box.add_child(new St.Label({
-                text: _('Applications'),
-                y_align: Clutter.ActorAlign.CENTER,
-            }));
-        }
-        this.button.add_child(box);
+            this._icon = this._darkIcon
+                ? new St.Icon({
+                    gicon: this._darkIcon,
+                    style_class: 'system-status-icon',
+                    y_align: Clutter.ActorAlign.CENTER,
+                })
+                : new St.Icon({
+                    icon_name: 'view-app-grid-symbolic',
+                    style_class: 'system-status-icon',
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+            box.add_child(this._icon);
+            // Lyra Flutuante keeps only the Lyra logo in the top-left application menu.
+            // The button retains its translated accessible name.
+            if (settings.get_string('desktop-profile') !== 'macos') {
+                box.add_child(new St.Label({
+                    text: _('Applications'),
+                    y_align: Clutter.ActorAlign.CENTER,
+                }));
+            }
+            this.button.add_child(box);
 
-        this._signals.connect(this._appSystem, 'installed-changed', () => this._rebuild());
-        for (const key of ['show-application-icons', 'sort-applications-menu',
-            'open-application-submenus-sideways']) {
-            this._signals.connect(this._settings, `changed::${key}`,
-                () => this._rebuild());
+            this._signals.connect(this._appSystem, 'installed-changed', () => this._rebuild());
+            for (const key of ['show-application-icons', 'sort-applications-menu',
+                'open-application-submenus-sideways']) {
+                this._signals.connect(this._settings, `changed::${key}`,
+                    () => this._rebuild());
+            }
+            this._signals.connect(this.button.menu, 'open-state-changed',
+                (_menu, open: boolean) => {
+                    if (!open)
+                        this._closeCategoryMenus();
+                });
+            this._signals.connect(this.button, 'style-changed',
+                () => this._syncTheme());
+            this._syncTheme();
+            this._rebuild();
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
         }
-        this._signals.connect(this.button.menu, 'open-state-changed',
-            (_menu, open: boolean) => {
-                if (!open)
-                    this._closeCategoryMenus();
-            });
-        this._signals.connect(this.button, 'style-changed',
-            () => this._syncTheme());
-        this._syncTheme();
-        this._rebuild();
     }
 
     destroy(): void {
         this._signals.destroy();
         this._destroyCategoryMenus();
-        destroyPanelIndicator(this.button);
+        if (this.button) destroyPanelIndicator(this.button);
     }
 
     private _syncTheme(): void {
@@ -377,33 +383,39 @@ class PlacesIndicator {
     private _signals = new SignalTracker();
 
     constructor(settings: Gio.Settings) {
-        this._settings = settings;
-        this.button = new PanelMenu.Button(0.5, _('Places'));
-        this.button.add_style_class_name('sheliak-panel-indicator');
-        this.button.add_child(panelLabel(_('Places'), 'folder-symbolic'));
-        (this.button.menu as PopupMenu.PopupMenu).actor
-            .add_style_class_name('sheliak-panel-menu');
+        try {
+            this._settings = settings;
+            this.button = new PanelMenu.Button(0.5, _('Places'));
+            this.button.add_style_class_name('sheliak-panel-indicator');
+            this.button.add_child(panelLabel(_('Places'), 'folder-symbolic'));
+            (this.button.menu as PopupMenu.PopupMenu).actor
+                .add_style_class_name('sheliak-panel-menu');
 
-        for (const signal of ['mount-added', 'mount-changed', 'mount-removed',
-            'volume-added', 'volume-changed', 'volume-removed']) {
-            this._signals.connect(this._volumeMonitor, signal, () => this._rebuild());
+            for (const signal of ['mount-added', 'mount-changed', 'mount-removed',
+                'volume-added', 'volume-changed', 'volume-removed']) {
+                this._signals.connect(this._volumeMonitor, signal, () => this._rebuild());
+            }
+            for (const key of ['show-place-bookmarks', 'show-place-volumes']) {
+                this._signals.connect(this._settings, `changed::${key}`, () => this._rebuild());
+            }
+            // Recarregar ao abrir também captura alterações no arquivo de marcadores
+            // feitas pelo Nautilus sem manter monitores separados para GTK 3 e GTK 4.
+            this._signals.connect(this.button.menu, 'open-state-changed',
+                (_menu, open: boolean) => {
+                    if (open)
+                        this._rebuild();
+                });
+            this._rebuild();
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
         }
-        for (const key of ['show-place-bookmarks', 'show-place-volumes']) {
-            this._signals.connect(this._settings, `changed::${key}`, () => this._rebuild());
-        }
-        // Recarregar ao abrir também captura alterações no arquivo de marcadores
-        // feitas pelo Nautilus sem manter monitores separados para GTK 3 e GTK 4.
-        this._signals.connect(this.button.menu, 'open-state-changed',
-            (_menu, open: boolean) => {
-                if (open)
-                    this._rebuild();
-            });
-        this._rebuild();
     }
 
     destroy(): void {
         this._signals.destroy();
-        destroyPanelIndicator(this.button);
+        if (this.button) destroyPanelIndicator(this.button);
     }
 
     private _rebuild(): void {
@@ -544,70 +556,75 @@ class SystemIndicator {
     private _appSystem = Shell.AppSystem.get_default();
 
     constructor(settings: Gio.Settings) {
-        this._settings = settings;
-        this.button = new PanelMenu.Button(0.5, _('System'));
-        this.button.add_style_class_name('sheliak-panel-indicator');
-        this.button.add_child(panelLabel(_('System'), 'preferences-system-symbolic'));
-        const menu = this.button.menu as PopupMenu.PopupMenu;
-        menu.actor.add_style_class_name('sheliak-panel-menu');
+        try {
+            this._settings = settings;
+            this.button = new PanelMenu.Button(0.5, _('System'));
+            this.button.add_style_class_name('sheliak-panel-indicator');
+            this.button.add_child(panelLabel(_('System'), 'preferences-system-symbolic'));
+            const menu = this.button.menu as PopupMenu.PopupMenu;
+            menu.actor.add_style_class_name('sheliak-panel-menu');
 
-        const sourceItem = new PopupMenu.PopupImageMenuItem(
-            _('Source Code'), 'applications-engineering-symbolic');
-        sourceItem.connect('activate', () => {
-            menu.close();
-            openUri(LYRA_SOURCE_URL);
-        });
-        menu.addMenuItem(sourceItem);
-
-        const reportBugItem = new PopupMenu.PopupImageMenuItem(
-            _('Report an Issue'), 'dialog-warning-symbolic');
-        reportBugItem.connect('activate', () => {
-            menu.close();
-            openUri(LYRA_ISSUES_URL);
-        });
-        menu.addMenuItem(reportBugItem);
-
-        const vegaIcon = (this._appSystem.lookup_app('vega.desktop')?.get_icon() as
-            unknown as Gio.Icon | undefined) ?? 'preferences-other-symbolic';
-        const settingsItem = new PopupMenu.PopupImageMenuItem('Vega', vegaIcon);
-        settingsItem.connect('activate', () => {
-            menu.close();
-            this._openVega();
-        });
-        menu.addMenuItem(settingsItem);
-
-        const systemTools: Array<[string, string, () => void]> = [
-            [_('Audio'), 'audio-volume-high-symbolic',
-                () => this._openControlCenter('sound', _('Could not open audio settings'))],
-            [_('Bluetooth'), 'bluetooth-active-symbolic',
-                () => this._openControlCenter('bluetooth',
-                    _('Could not open Bluetooth settings'))],
-            [_('Energy'), 'battery-good-symbolic',
-                () => this._openControlCenter('power', _('Could not open energy settings'))],
-            [_('Screenshot'), 'camera-photo-symbolic', () => this._openScreenshot()],
-        ];
-        for (const [label, icon, activate] of systemTools) {
-            const item = new PopupMenu.PopupImageMenuItem(label, icon);
-            item.connect('activate', () => {
+            const sourceItem = new PopupMenu.PopupImageMenuItem(
+                _('Source Code'), 'applications-engineering-symbolic');
+            sourceItem.connect('activate', () => {
                 menu.close();
-                activate();
+                openUri(LYRA_SOURCE_URL);
             });
-            menu.addMenuItem(item);
-        }
+            menu.addMenuItem(sourceItem);
 
-        if (this._settings.get_boolean('show-system-about')) {
-            const aboutItem = new PopupMenu.PopupImageMenuItem(_('About'), 'help-about-symbolic');
-            aboutItem.connect('activate', () => {
+            const reportBugItem = new PopupMenu.PopupImageMenuItem(
+                _('Report an Issue'), 'dialog-warning-symbolic');
+            reportBugItem.connect('activate', () => {
                 menu.close();
-                this._openSystemAbout();
+                openUri(LYRA_ISSUES_URL);
             });
-            menu.addMenuItem(aboutItem);
-        }
+            menu.addMenuItem(reportBugItem);
 
+            const vegaIcon = (this._appSystem.lookup_app('vega.desktop')?.get_icon() as
+                unknown as Gio.Icon | undefined) ?? 'preferences-other-symbolic';
+            const settingsItem = new PopupMenu.PopupImageMenuItem('Vega', vegaIcon);
+            settingsItem.connect('activate', () => {
+                menu.close();
+                this._openVega();
+            });
+            menu.addMenuItem(settingsItem);
+
+            const systemTools: Array<[string, string, () => void]> = [
+                [_('Audio'), 'audio-volume-high-symbolic',
+                    () => this._openControlCenter('sound', _('Could not open audio settings'))],
+                [_('Bluetooth'), 'bluetooth-active-symbolic',
+                    () => this._openControlCenter('bluetooth',
+                        _('Could not open Bluetooth settings'))],
+                [_('Energy'), 'battery-good-symbolic',
+                    () => this._openControlCenter('power', _('Could not open energy settings'))],
+                [_('Screenshot'), 'camera-photo-symbolic', () => this._openScreenshot()],
+            ];
+            for (const [label, icon, activate] of systemTools) {
+                const item = new PopupMenu.PopupImageMenuItem(label, icon);
+                item.connect('activate', () => {
+                    menu.close();
+                    activate();
+                });
+                menu.addMenuItem(item);
+            }
+
+            if (this._settings.get_boolean('show-system-about')) {
+                const aboutItem = new PopupMenu.PopupImageMenuItem(_('About'), 'help-about-symbolic');
+                aboutItem.connect('activate', () => {
+                    menu.close();
+                    this._openSystemAbout();
+                });
+                menu.addMenuItem(aboutItem);
+            }
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
+        }
     }
 
     destroy(): void {
-        destroyPanelIndicator(this.button);
+        if (this.button) destroyPanelIndicator(this.button);
     }
 
     private _openVega(): void {
@@ -673,30 +690,36 @@ export class PanelMenus {
     constructor(settings: Gio.Settings, extensionPath?: string,
         private _mode: 'menus' | 'search' = 'menus',
         private _createSearch?: () => SearchIndicatorView) {
-        this._settings = settings;
-        this._extensionPath = extensionPath;
-        for (const key of ['show-applications-menu', 'show-places-menu',
-            'show-system-menu', 'show-system-about',
-            'show-search-menu', 'panel-menu-position', 'desktop-profile']) {
-            this._signals.connect(this._settings, `changed::${key}`,
-                () => this._recreate());
+        try {
+            this._settings = settings;
+            this._extensionPath = extensionPath;
+            for (const key of ['show-applications-menu', 'show-places-menu',
+                'show-system-menu', 'show-system-about',
+                'show-search-menu', 'panel-menu-position', 'desktop-profile']) {
+                this._signals.connect(this._settings, `changed::${key}`,
+                    () => this._recreate());
+            }
+            this._recreate();
+            const panel = Main.panel;
+            const boxes = this._boxes ? Object.values(this._boxes) : [];
+            for (const actor of [panel, ...boxes]) {
+                this._signals.connect(actor, 'notify::allocation', () => this._queueLayout());
+                this._signals.connect(actor, 'style-changed', () => this._queueLayout());
+            }
+            for (const box of boxes) {
+                // Menus and search can be enabled or rebuilt independently.
+                this._signals.connect(box, 'child-added', () => this._queueLayout());
+                this._signals.connect(box, 'child-removed', () => this._queueLayout());
+            }
+            this._signals.connect(panel, 'queue-relayout', () => this._queueLayout());
+            this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._queueLayout());
+            this._signals.connect(global.display, 'workareas-changed', () => this._queueLayout());
+            this._signals.connect(St.ThemeContext.get_for_stage(global.stage), 'changed', () => this._queueLayout());
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
         }
-        this._recreate();
-        const panel = Main.panel;
-        const boxes = this._boxes ? Object.values(this._boxes) : [];
-        for (const actor of [panel, ...boxes]) {
-            this._signals.connect(actor, 'notify::allocation', () => this._queueLayout());
-            this._signals.connect(actor, 'style-changed', () => this._queueLayout());
-        }
-        for (const box of boxes) {
-            // Menus and search can be enabled or rebuilt independently.
-            this._signals.connect(box, 'child-added', () => this._queueLayout());
-            this._signals.connect(box, 'child-removed', () => this._queueLayout());
-        }
-        this._signals.connect(panel, 'queue-relayout', () => this._queueLayout());
-        this._signals.connect(Main.layoutManager, 'monitors-changed', () => this._queueLayout());
-        this._signals.connect(global.display, 'workareas-changed', () => this._queueLayout());
-        this._signals.connect(St.ThemeContext.get_for_stage(global.stage), 'changed', () => this._queueLayout());
     }
 
     destroy(): void {

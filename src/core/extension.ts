@@ -58,7 +58,8 @@ export abstract class LyraExtension<T = object> extends Extension {
             this.running = true;
             this.activate();
         } catch (error) {
-            this.disable();
+            try { this.disable(); }
+            catch (cleanup) { console.error(`Lyra: activation cleanup: ${cleanup}`); }
             throw error; // Let GNOME report the actual failure, not a false active state.
         }
     }

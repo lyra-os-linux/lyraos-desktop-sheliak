@@ -8,7 +8,8 @@ versões passadas/futuras, GNOME 49, outra distribuição ou sessões X11 reais.
 
 ## Adaptadores e alternativas
 
-Os acessos privados dos componentes TypeScript ficam em `src/shellCompat.ts`.
+Os contratos privados dos componentes TypeScript são verificados em `src/shellCompat.ts`;
+a integração de animações que consome o contrato fica em `src/animationBridge.ts`.
 O adaptador verifica métodos e formatos antes de alterar o Shell, retorna
 `null` quando uma capacidade opcional falta e registra um diagnóstico por
 capacidade/bundle. Não inventa estruturas substitutas dentro do GNOME.
@@ -24,7 +25,7 @@ capacidade/bundle. Não inventa estruturas substitutas dentro do GNOME.
 | `overview.showApps` | Botão de aplicativos do Dock | Abre a overview nativa por `show`, se disponível. |
 | ExtensionManager `lookup/connect/disconnect` | Core | Descoberta é obrigatória antes da ativação para impedir coexistência com a extensão monolítica antiga. Sua ausência interrompe somente a extensão que está sendo ativada, antes de ela alterar o Shell. |
 | Endpoint Lyra `version/current/subscribe` | Integrações entre extensões | Protocolo incompatível ou assinatura ausente equivale a provedor indisponível. |
-| ShellWM completion, sinais e bloqueio/desbloqueio; descoberta de ambos os handlers | Animações | Mantém animações nativas. Falha ao conectar substitutos libera conexões e bloqueios já adquiridos. |
+| ShellWM completion, contexto de emissão GObject, decisão de animação do WM, conjuntos de operações e `Actor.ease` | Animações | Mantém o caminho nativo se o contrato estiver ausente ou já interceptado. Não procura, bloqueia ou desconecta handlers nativos. Falhas de aquisição liberam somente recursos próprios. |
 | `WorkspaceAnimation.WorkspaceGroup.prototype._shouldShowWindow` e `Shell.Global.prototype.get_window_actors` | Adaptador herdado do Desktop Icons | Método ausente ou somente leitura não é interceptado. Desktop continua com o comportamento de listagem de janelas nativo. |
 
 No painel inferior, a aquisição guarda as flags originais e a função de
@@ -71,11 +72,12 @@ GNOME 48.8 em outra versão de manutenção. Cada nova versão do pacote GNOME
 suportado exige repetir os testes nativos e registrar versões, artefatos e
 resultados antes da qualificação. Alterar somente `shell-version` não basta.
 
-A identificação inequívoca da posse dos handlers de animação continua na
-issue #9: a busca GObject por sinal valida existência/conexão, mas ainda não
-prova quem registrou cada callback. Esta correção não encerra #9, janelas
-liberadas (#7) ou falhas parciais genéricas (#10). A rodada de coexistência
-do Painel (#2) tem [contrato e testes próprios](panel-coexistence.md).
+A issue #9 foi tratada pela integração descrita em
+[Animações e eventos nativos](animation-ownership.md), sem bloqueio de handlers.
+Janelas liberadas (#7) e coexistência do Painel (#2) têm
+[teste de ciclo de vida](window-lifecycle.md) e [contrato de coexistência](panel-coexistence.md).
+Falhas parciais dos seis componentes são cobertas pelo
+[contrato de ativação da issue #10](partial-activation.md).
 Os testes de compatibilidade aqui cobrem os caminhos modificados, sem alegar
 cobertura de toda exceção possível de um construtor.
 
