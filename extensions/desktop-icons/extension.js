@@ -25,6 +25,7 @@ import St from 'gi://St'
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js'
+import {shellIsStartingUp} from '../../src/shellCompat.js';
 
 import * as EmulateX11 from './emulateX11WindowType.js';
 import * as VisibleArea from './visibleArea.js';
@@ -39,6 +40,7 @@ export default class DING extends Extension {
         this.DesktopIconsUsableArea = null;
         this.data = {};
         this.data.isEnabled = false;
+        this.data.enableGeneration = 0;
         this.data.launchDesktopId = 0;
         this.data.currentProcess = null;
         this.data.dbusTimeoutId = 0;
@@ -66,6 +68,7 @@ export default class DING extends Extension {
     }
 
     enable() {
+        this.data.enableGeneration++;
         if (!this.data.GnomeShellOverride) {
             this.data.GnomeShellOverride = new GnomeShellOverride.GnomeShellOverride();
         }
@@ -77,83 +80,63 @@ export default class DING extends Extension {
             this.data.visibleArea = this.DesktopIconsUsableArea;
         }
         // If the desktop is still starting up, we wait until it is ready
-        if (Main.layoutManager._startingUp) {
-            this.data.startupPreparedId = Main.layoutManager.connect('startup-complete', () => this.innerEnable());
+        if (shellIsStartingUp()) {
+            this.data.startupPreparedId = Main.layoutManager.connect('startup-complete', () => {
+                try { this.innerEnable(); }
+                catch (error) { this.activationFailed(error); }
+            });
         } else {
             this.data.startupPreparedId = null;
             this.innerEnable();
         }
     }
 
+    // Lyra: cleanup must tolerate every partial stage and keep the original
+    // failure visible even when another cleanup step itself fails.
     disable() {
+        const data = this.data;
+        const release = callback => {
+            try { callback(); }
+            catch (error) { console.error(`Lyra Desktop Icons cleanup: ${error}`); }
+        };
         this.DesktopIconsUsableArea = null;
-        this.data.isEnabled = false;
-        this.killCurrentProcess();
-        this.data.GnomeShellOverride.disable();
-        this.data.x11Manager.disable();
-        this.data.visibleArea.disable();
+        data.isEnabled = false;
+        data.enableGeneration++;
+        release(() => this.killCurrentProcess());
+        for (const helper of ['GnomeShellOverride', 'x11Manager', 'visibleArea'])
+            release(() => data[helper]?.disable());
+        for (const [owner, key] of [
+            [data.doCopy, 'doCopyId'], [data.doCut, 'doCutId'], [data.disableTimer, 'disableTimerId'],
+            [global.window_manager, 'switchWorkspaceId'], [global.window_manager, 'sizeChangedId'],
+            [data.visibleArea, 'visibleAreaId'], [Main.layoutManager, 'startupPreparedId'],
+            [Main.layoutManager, 'monitorsChangedId'], [global.display, 'workareasChangedId'],
+        ]) {
+            const id = data[key];
+            data[key] = 0;
+            if (id) release(() => owner?.disconnect(id));
+        }
+        if (data.dbusConnectionGroupId) {
+            const id = data.dbusConnectionGroupId;
+            data.dbusConnectionGroupId = 0;
+            release(() => data.dbusConnection.unexport_action_group(id));
+        }
+        if (data.dbusConnectionId) {
+            const id = data.dbusConnectionId;
+            data.dbusConnectionId = 0;
+            release(() => Gio.bus_unown_name(id));
+        }
+        if (data.dbusTimeoutId) {
+            const id = data.dbusTimeoutId;
+            data.dbusTimeoutId = 0;
+            release(() => GLib.source_remove(id));
+        }
+        for (const key of ['doCopy', 'doCut', 'disableTimer', 'desktopGeometry', 'dbusConnection', 'actionGroup'])
+            data[key] = undefined;
+    }
 
-        if (this.data.doCopyId) {
-            this.data.doCopy.disconnect(this.data.doCopyId);
-            this.data.doCopyId = 0;
-            this.data.doCopy = undefined;
-        }
-
-        if (this.data.switchWorkspaceId) {
-            global.window_manager.disconnect(this.data.switchWorkspaceId);
-            this.data.switchWorkspaceId = 0;
-        }
-        if (this.data.doCutId) {
-            this.data.doCut.disconnect(this.data.doCutId);
-            this.data.doCutId = 0;
-            this.data.doCut = undefined;
-        }
-
-        if (this.data.disableTimerId) {
-            this.data.disableTimer.disconnect(this.data.disableTimerId);
-            this.data.disableTimerId = 0;
-            this.data.disableTimer = undefined;
-        }
-
-        this.data.desktopGeometry = undefined;
-
-        // disconnect signals only if connected
-        if (this.data.dbusConnectionGroupId) {
-            this.data.dbusConnection.unexport_action_group(this.data.dbusConnectionGroupId);
-            this.data.dbusConnectionGroupId = 0;
-            this.data.dbusConnection = undefined;
-        }
-
-        if (this.data.dbusConnectionId) {
-            Gio.bus_unown_name(this.data.dbusConnectionId);
-            this.data.dbusConnectionId = 0;
-        }
-        this.data.actionGroup = undefined;
-
-        if (this.data.visibleAreaId) {
-            this.data.visibleArea.disconnect(this.data.visibleAreaId);
-            this.data.visibleAreaId = 0;
-        }
-        if (this.data.startupPreparedId) {
-            Main.layoutManager.disconnect(this.data.startupPreparedId);
-            this.data.startupPreparedId = 0;
-        }
-        if (this.data.monitorsChangedId) {
-            Main.layoutManager.disconnect(this.data.monitorsChangedId);
-            this.data.monitorsChangedId = 0;
-        }
-        if (this.data.workareasChangedId) {
-            global.display.disconnect(this.data.workareasChangedId);
-            this.data.workareasChangedId = 0;
-        }
-        if (this.data.sizeChangedId) {
-            global.window_manager.disconnect(this.data.sizeChangedId);
-            this.data.sizeChangedId = 0;
-        }
-        if (this.data.dbusTimeoutId) {
-            GLib.source_remove(this.data.dbusTimeoutId);
-            this.data.dbusTimeoutId = 0;
-        }
+    activationFailed(error) {
+        this.disable();
+        Main.extensionManager.logExtensionError(this.uuid, error);
     }
 
     /**
@@ -215,40 +198,44 @@ export default class DING extends Extension {
         * passing the URIs as parameters, and delegate that to the DING Gnome Shell extension. This is easily done
         * with a GLib.SimpleAction.
         */
+        const generation = this.data.enableGeneration;
         this.data.dbusConnectionId = Gio.bus_own_name(Gio.BusType.SESSION, 'br.com.lyraos.desktopicons.extension', Gio.BusNameOwnerFlags.NONE, null, (connection, name) => {
-            this.data.dbusConnection = connection;
+            if (!this.data.isEnabled || generation !== this.data.enableGeneration) return;
+            try {
+                this.data.dbusConnection = connection;
 
-            this.data.doCopy = new Gio.SimpleAction({
-                name: 'doCopy',
-                parameter_type: new GLib.VariantType('as'),
-            });
-            this.data.doCut = new Gio.SimpleAction({
-                name: 'doCut',
-                parameter_type: new GLib.VariantType('as'),
-            });
-            this.data.disableTimer = new Gio.SimpleAction({
-                name: 'disableTimer',
-            });
-            this.data.desktopGeometry = Gio.SimpleAction.new_stateful('desktopGeometry', new GLib.VariantType('av'), this.getDesktopGeometry());
-            this.data.desktopGeometry.set_enabled(true);
-            this.data.doCopyId = this.data.doCopy.connect('activate', (action, parameters) => this.manageCutCopy(action, parameters));
-            this.data.doCutId = this.data.doCut.connect('activate', (action, parameters) => this.manageCutCopy(action, parameters));
-            this.data.disableTimerId = this.data.disableTimer.connect('activate', () => {
-                if (this.data.currentProcess && this.data.currentProcess.subprocess) {
-                    this.data.currentProcess.cancel_timer();
-                }
-            });
-            this.data.actionGroup = new Gio.SimpleActionGroup();
-            this.data.actionGroup.add_action(this.data.doCopy);
-            this.data.actionGroup.add_action(this.data.doCut);
-            this.data.actionGroup.add_action(this.data.disableTimer);
-            this.data.actionGroup.add_action(this.data.desktopGeometry);
+                this.data.doCopy = new Gio.SimpleAction({
+                    name: 'doCopy',
+                    parameter_type: new GLib.VariantType('as'),
+                });
+                this.data.doCut = new Gio.SimpleAction({
+                    name: 'doCut',
+                    parameter_type: new GLib.VariantType('as'),
+                });
+                this.data.disableTimer = new Gio.SimpleAction({
+                    name: 'disableTimer',
+                });
+                this.data.desktopGeometry = Gio.SimpleAction.new_stateful('desktopGeometry', new GLib.VariantType('av'), this.getDesktopGeometry());
+                this.data.desktopGeometry.set_enabled(true);
+                this.data.doCopyId = this.data.doCopy.connect('activate', (action, parameters) => this.manageCutCopy(action, parameters));
+                this.data.doCutId = this.data.doCut.connect('activate', (action, parameters) => this.manageCutCopy(action, parameters));
+                this.data.disableTimerId = this.data.disableTimer.connect('activate', () => {
+                    if (this.data.currentProcess && this.data.currentProcess.subprocess) {
+                        this.data.currentProcess.cancel_timer();
+                    }
+                });
+                this.data.actionGroup = new Gio.SimpleActionGroup();
+                this.data.actionGroup.add_action(this.data.doCopy);
+                this.data.actionGroup.add_action(this.data.doCut);
+                this.data.actionGroup.add_action(this.data.disableTimer);
+                this.data.actionGroup.add_action(this.data.desktopGeometry);
 
-            this.data.dbusConnectionGroupId = this.data.dbusConnection.export_action_group(
-                '/br/com/lyraos/desktopicons/extension/control',
-                this.data.actionGroup
-            );
-            this.launchDesktop();
+                this.data.dbusConnectionGroupId = this.data.dbusConnection.export_action_group(
+                    '/br/com/lyraos/desktopicons/extension/control',
+                    this.data.actionGroup
+                );
+                this.launchDesktop();
+            } catch (error) { this.activationFailed(error); }
         }, null);
     }
 
@@ -309,7 +296,7 @@ export default class DING extends Extension {
             this.data.currentProcess.subprocess.send_signal(15);
         }
         this.data.currentProcess = null;
-        this.data.x11Manager.setWaylandClient(null);
+        this.data.x11Manager?.setWaylandClient(null);
     }
 
     /**
@@ -406,7 +393,7 @@ export default class DING extends Extension {
      */
     doRelaunch(reloadTime) {
         this.data.currentProcess = null;
-        this.data.x11Manager.setWaylandClient(null);
+        this.data.x11Manager?.setWaylandClient(null);
         if (this.data.isEnabled) {
             if (this.data.launchDesktopId) {
                 GLib.source_remove(this.data.launchDesktopId);

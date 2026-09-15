@@ -45,122 +45,128 @@ export class AppIcon {
         tooltip?: TooltipManager,
         windows?: WindowsFavorites,
     ) {
-        this.app = app;
-        this.favorite = favorite;
-        this.appId = app.get_id();
-        this._iconSize = iconSize;
-        this.actor = new AppButton({
-            style_class: 'overview-tile sheliak-app-button',
-            reactive: true,
-            can_focus: true,
-            track_hover: true,
-            accessible_name: app.get_name(),
-        });
+        try {
+            this.app = app;
+            this.favorite = favorite;
+            this.appId = app.get_id();
+            this._iconSize = iconSize;
+            this.actor = new AppButton({
+                style_class: 'overview-tile sheliak-app-button',
+                reactive: true,
+                can_focus: true,
+                track_hover: true,
+                accessible_name: app.get_name(),
+            });
 
-        const iconContainer = new St.Widget({layout_manager: new Clutter.BinLayout()});
-        this.zoomActor = iconContainer;
-        iconContainer.add_child(app.create_icon_texture(iconSize));
-        this._badge = new St.Label({
-            style_class: 'dash-label sheliak-app-badge',
-            text: '',
-            visible: false,
-            x_align: Clutter.ActorAlign.END,
-            y_align: Clutter.ActorAlign.START,
-        });
-        iconContainer.add_child(this._badge);
+            const iconContainer = new St.Widget({layout_manager: new Clutter.BinLayout()});
+            this.zoomActor = iconContainer;
+            iconContainer.add_child(app.create_icon_texture(iconSize));
+            this._badge = new St.Label({
+                style_class: 'dash-label sheliak-app-badge',
+                text: '',
+                visible: false,
+                x_align: Clutter.ActorAlign.END,
+                y_align: Clutter.ActorAlign.START,
+            });
+            iconContainer.add_child(this._badge);
 
-        this._runningIndicator = new St.Widget({
-            style_class: 'app-grid-running-dot sheliak-running-indicator',
-            visible: false,
-            x_align: Clutter.ActorAlign.CENTER,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        this._windowCountIndicator = new St.Label({
-            style_class: 'dash-label sheliak-window-count',
-            text: '',
-            visible: false,
-            x_align: Clutter.ActorAlign.CENTER,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        const indicatorRow = new St.Widget({
-            style_class: 'sheliak-indicator-row',
-            layout_manager: new Clutter.BinLayout(),
-            x_align: Clutter.ActorAlign.CENTER,
-        });
-        indicatorRow.add_child(this._runningIndicator);
-        indicatorRow.add_child(this._windowCountIndicator);
+            this._runningIndicator = new St.Widget({
+                style_class: 'app-grid-running-dot sheliak-running-indicator',
+                visible: false,
+                x_align: Clutter.ActorAlign.CENTER,
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            this._windowCountIndicator = new St.Label({
+                style_class: 'dash-label sheliak-window-count',
+                text: '',
+                visible: false,
+                x_align: Clutter.ActorAlign.CENTER,
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            const indicatorRow = new St.Widget({
+                style_class: 'sheliak-indicator-row',
+                layout_manager: new Clutter.BinLayout(),
+                x_align: Clutter.ActorAlign.CENTER,
+            });
+            indicatorRow.add_child(this._runningIndicator);
+            indicatorRow.add_child(this._windowCountIndicator);
 
-        const content = new St.BoxLayout({
-            style_class: 'overview-icon',
-            orientation: Clutter.Orientation.VERTICAL,
-            x_align: Clutter.ActorAlign.CENTER,
-        });
-        content.add_child(iconContainer);
-        content.add_child(indicatorRow);
-        this.actor.set_child(content);
+            const content = new St.BoxLayout({
+                style_class: 'overview-icon',
+                orientation: Clutter.Orientation.VERTICAL,
+                x_align: Clutter.ActorAlign.CENTER,
+            });
+            content.add_child(iconContainer);
+            content.add_child(indicatorRow);
+            this.actor.set_child(content);
 
-        this.menu = new AppContextMenu(this.actor, app, windows);
-        menuManager.addMenu(this.menu.menu);
-        if (onMenuStateChanged) {
-            this._signals.connect(this.menu.menu, 'open-state-changed',
-                (_menu: unknown, open: boolean) => onMenuStateChanged(open));
+            this.menu = new AppContextMenu(this.actor, app, windows);
+            menuManager.addMenu(this.menu.menu);
+            if (onMenuStateChanged) {
+                this._signals.connect(this.menu.menu, 'open-state-changed',
+                    (_menu: unknown, open: boolean) => onMenuStateChanged(open));
+            }
+
+            // St.Button emits clicked for mouse, keyboard and accessible activation.
+            // Let its primary release handler run so cancelled presses and drags
+            // cannot activate the application, and each click is handled only once.
+            this._signals.connect(this.actor, 'clicked', () => this.activate());
+            this._signals.connect(this.actor, 'button-release-event',
+                (_actor, event: Clutter.Event) => {
+                    const button = event.get_button();
+                    if (button === Clutter.BUTTON_SECONDARY) {
+                        this.menu.toggle();
+                        return Clutter.EVENT_STOP;
+                    }
+                    return Clutter.EVENT_PROPAGATE;
+                });
+
+            if (tooltip) {
+                this._signals.connect(this.actor, 'enter-event', () => {
+                    tooltip.show(this.actor, app.get_name());
+                    return Clutter.EVENT_PROPAGATE;
+                });
+                this._signals.connect(this.actor, 'leave-event', () => {
+                    tooltip.hide();
+                    return Clutter.EVENT_PROPAGATE;
+                });
+                this._signals.connect(this.actor, 'button-press-event', () => {
+                    tooltip.hide();
+                    return Clutter.EVENT_PROPAGATE;
+                });
+            }
+
+            if (favorite) {
+                (this.actor as unknown as {_delegate?: unknown})._delegate = this;
+                const draggable = DND.makeDraggable(this.actor, {timeoutThreshold: 200});
+                this._signals.connect(draggable, 'drag-begin', () => {
+                    this.actor.add_style_class_name('dragging');
+                });
+                this._signals.connect(draggable, 'drag-end', () => {
+                    this.actor.remove_style_class_name('dragging');
+                    onDragEnd?.();
+                });
+            }
+
+            // Mutter uses this geometry as the destination of minimize effects.
+            // Keeping it on the application icon also lets deform effects such as
+            // Magic Lamp pull the window into the corresponding Sheliak item.
+            this._signals.connect(this.actor, 'notify::allocation',
+                () => this.updateIconGeometry());
+            this._signals.connect(this.actor, 'notify::mapped',
+                () => this.updateIconGeometry());
+            this._signals.connect(this.app, 'windows-changed',
+                () => {
+                    this.setState(favorite);
+                    this.updateIconGeometry();
+                });
+
+            this.setState(favorite);
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
         }
-
-        // St.Button emits clicked for mouse, keyboard and accessible activation.
-        // Let its primary release handler run so cancelled presses and drags
-        // cannot activate the application, and each click is handled only once.
-        this._signals.connect(this.actor, 'clicked', () => this.activate());
-        this._signals.connect(this.actor, 'button-release-event',
-            (_actor, event: Clutter.Event) => {
-                const button = event.get_button();
-                if (button === Clutter.BUTTON_SECONDARY) {
-                    this.menu.toggle();
-                    return Clutter.EVENT_STOP;
-                }
-                return Clutter.EVENT_PROPAGATE;
-            });
-
-        if (tooltip) {
-            this._signals.connect(this.actor, 'enter-event', () => {
-                tooltip.show(this.actor, app.get_name());
-                return Clutter.EVENT_PROPAGATE;
-            });
-            this._signals.connect(this.actor, 'leave-event', () => {
-                tooltip.hide();
-                return Clutter.EVENT_PROPAGATE;
-            });
-            this._signals.connect(this.actor, 'button-press-event', () => {
-                tooltip.hide();
-                return Clutter.EVENT_PROPAGATE;
-            });
-        }
-
-        if (favorite) {
-            (this.actor as unknown as {_delegate?: unknown})._delegate = this;
-            const draggable = DND.makeDraggable(this.actor, {timeoutThreshold: 200});
-            this._signals.connect(draggable, 'drag-begin', () => {
-                this.actor.add_style_class_name('dragging');
-            });
-            this._signals.connect(draggable, 'drag-end', () => {
-                this.actor.remove_style_class_name('dragging');
-                onDragEnd?.();
-            });
-        }
-
-        // Mutter uses this geometry as the destination of minimize effects.
-        // Keeping it on the application icon also lets deform effects such as
-        // Magic Lamp pull the window into the corresponding Sheliak item.
-        this._signals.connect(this.actor, 'notify::allocation',
-            () => this.updateIconGeometry());
-        this._signals.connect(this.actor, 'notify::mapped',
-            () => this.updateIconGeometry());
-        this._signals.connect(this.app, 'windows-changed',
-            () => {
-                this.setState(favorite);
-                this.updateIconGeometry();
-            });
-
-        this.setState(favorite);
     }
 
     setState(favorite: boolean): void {
@@ -235,9 +241,9 @@ export class AppIcon {
         // A favorites change rebuilds the dock synchronously from the menu
         // action. Close the menu while its open-state signal is still
         // connected so Dock can release the visibility hold.
-        this.menu.close();
+        this.menu?.close();
         this._signals.destroy();
-        this.menu.destroy();
-        this.actor.destroy();
+        this.menu?.destroy();
+        this.actor?.destroy();
     }
 }

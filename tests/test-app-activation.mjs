@@ -11,7 +11,7 @@ async function module(entry, fixtures) {
                 args.path.startsWith('gi://') ? `export default fixtures[${JSON.stringify(args.path.slice(5))}];` :
                     'export const {uiGroup, activateWindow, notifyError, getAppFavorites, PopupMenu, PopupSubMenuMenuItem, PopupMenuItem, Ornament, PopupSeparatorMenuItem, gettext} = fixtures;'}));
         }}]});
-    return runInNewContext(`${outputFiles[0].text}\nModule`, {fixtures});
+    return runInNewContext(`${outputFiles[0].text}\nModule`, {fixtures, global: {get_current_time: () => 123}});
 }
 
 class Signals {
@@ -112,4 +112,34 @@ test('context menu reserves Menu/Shift+F10 and lets St.Button handle activation 
     assert.equal(key(Clutter.KEY_F10, 5), false);
     source.reactive = false;
     assert.equal(key(Clutter.KEY_Menu), false);
+});
+
+test('context window actions resolve live windows and ignore stale entries', async () => {
+    class Popup extends Signals {
+        constructor() { super(); this.actor = {add_style_class_name() {}, hide() {}}; this.actions = []; }
+        removeAll() { this.actions = []; }
+        addMenuItem() {}
+        addAction(title, callback) { this.actions.push({title, callback}); }
+    }
+    const activated = [];
+    const {AppContextMenu} = await module('src/contextMenu.ts', {
+        St: {Side: {BOTTOM: 0}}, PopupMenu: Popup, PopupSeparatorMenuItem: class {},
+        getAppFavorites: () => ({}), uiGroup: {add_child() {}}, gettext: text => text,
+        activateWindow: (window, time) => activated.push([window, time]),
+    });
+    const first = {get_title: () => 'First', get_stable_sequence: () => 101};
+    const second = {get_title: () => 'Second', get_stable_sequence: () => 102};
+    let windows = [first, second];
+    const app = {can_open_new_window: () => false, get_id: () => null, get_windows: () => windows};
+    const context = new AppContextMenu({}, app);
+    context.rebuild();
+    const firstAction = context.menu.actions.find(action => action.title === 'First');
+    const secondAction = context.menu.actions.find(action => action.title === 'Second');
+    firstAction.callback();
+    assert.deepEqual(activated, [[first, 123]]);
+    windows = [second];
+    firstAction.callback();
+    assert.equal(activated.length, 1, 'closed window action must not activate its stale wrapper');
+    secondAction.callback();
+    assert.deepEqual(activated[1], [second, 123]);
 });

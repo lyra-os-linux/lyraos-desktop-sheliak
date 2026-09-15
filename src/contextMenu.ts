@@ -7,6 +7,7 @@ import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {trackOwnedSubmenu} from './shellCompat.js';
 import type {FavoritesList, WindowsFavorites} from './profileFavorites.js';
 import type {TileSizeAction} from './tileSizes.js';
 import type {TileSize} from './tileLayout.js';
@@ -42,12 +43,18 @@ export class AppContextMenu {
 
     constructor(source: St.Widget, app: Shell.App, private _pins?: WindowsFavorites,
         private _surface: 'panel' | 'menu' = 'panel', private _tileSize?: TileSizeAction) {
-        this._app = app;
-        this._favorites = _pins?.panel ?? AppFavorites.getAppFavorites();
-        this.menu = new AppPopupMenu(source, () => this.toggle());
-        this.menu.actor.add_style_class_name('sheliak-menu');
-        Main.uiGroup.add_child(this.menu.actor);
-        this.menu.actor.hide();
+        try {
+            this._app = app;
+            this._favorites = _pins?.panel ?? AppFavorites.getAppFavorites();
+            this.menu = new AppPopupMenu(source, () => this.toggle());
+            this.menu.actor.add_style_class_name('sheliak-menu');
+            Main.uiGroup.add_child(this.menu.actor);
+            this.menu.actor.hide();
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
+        }
     }
 
     rebuild(): void {
@@ -97,13 +104,19 @@ export class AppContextMenu {
                 resize.menu.addMenuItem(item);
             }
             this.menu.addMenuItem(resize);
+            trackOwnedSubmenu(this.menu, resize.menu);
         }
         if (windows.length > 1) {
             this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
             for (const window of windows) {
                 const title = window.get_title() || this._app.get_name();
-                this.menu.addAction(title, () =>
-                    Main.activateWindow(window, global.get_current_time()));
+                // The menu can outlive one window while the app keeps running.
+                // Store only its stable ID and resolve a still-live window on use.
+                const sequence = window.get_stable_sequence();
+                this.menu.addAction(title, () => {
+                    const current = this._windows().find(item => item.get_stable_sequence() === sequence);
+                    if (current) Main.activateWindow(current, global.get_current_time());
+                });
             }
         }
 
@@ -138,7 +151,7 @@ export class AppContextMenu {
     }
 
     destroy(): void {
-        this.menu.destroy();
+        this.menu?.destroy();
     }
 
     private _windows(): Meta.Window[] {

@@ -29,39 +29,45 @@ export class TrashIcon {
     private _cancellable: Gio.Cancellable | null = null;
 
     constructor() {
-        this._icon = new St.Icon({
-            icon_name: 'user-trash-symbolic',
-            icon_size: ICON_SIZE,
-        });
-        this.actor = new St.Button({
-            style_class: 'overview-tile sheliak-system-button sheliak-trash-button',
-            child: new St.Bin({style_class: 'overview-icon', child: this._icon}),
-            reactive: true,
-            can_focus: true,
-            track_hover: true,
-            accessible_name: _('Trash'),
-        });
-
-        this._signals.connect(this.actor, 'clicked', () => {
-            Gio.AppInfo.launch_default_for_uri_async(
-                TRASH_URI, null, null, (_source, result) => {
-                    try {
-                        Gio.AppInfo.launch_default_for_uri_finish(result);
-                    } catch (error) {
-                        console.error(`Sheliak: não foi possível abrir a lixeira: ${error}`);
-                    }
-                });
-        });
-
         try {
-            this._monitor = this._trash.monitor_directory(
-                Gio.FileMonitorFlags.WATCH_MOVES, null);
-            this._signals.connect(this._monitor, 'changed', () => this._refresh());
-        } catch (error) {
-            console.warn(`Sheliak: monitor da lixeira indisponível: ${error}`);
-        }
+            this._icon = new St.Icon({
+                icon_name: 'user-trash-symbolic',
+                icon_size: ICON_SIZE,
+            });
+            this.actor = new St.Button({
+                style_class: 'overview-tile sheliak-system-button sheliak-trash-button',
+                child: new St.Bin({style_class: 'overview-icon', child: this._icon}),
+                reactive: true,
+                can_focus: true,
+                track_hover: true,
+                accessible_name: _('Trash'),
+            });
 
-        this._refresh();
+            this._signals.connect(this.actor, 'clicked', () => {
+                Gio.AppInfo.launch_default_for_uri_async(
+                    TRASH_URI, null, null, (_source, result) => {
+                        try {
+                            Gio.AppInfo.launch_default_for_uri_finish(result);
+                        } catch (error) {
+                            console.error(`Sheliak: não foi possível abrir a lixeira: ${error}`);
+                        }
+                    });
+            });
+
+            try {
+                this._monitor = this._trash.monitor_directory(
+                    Gio.FileMonitorFlags.WATCH_MOVES, null);
+                this._signals.connect(this._monitor, 'changed', () => this._refresh());
+            } catch (error) {
+                console.warn(`Sheliak: monitor da lixeira indisponível: ${error}`);
+            }
+
+            this._refresh();
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
+        }
     }
 
     destroy(): void {
@@ -72,7 +78,7 @@ export class TrashIcon {
         this._signals.destroy();
         this._monitor?.cancel();
         this._monitor = null;
-        this.actor.destroy();
+        this.actor?.destroy();
     }
 
     private _refresh(): void {

@@ -12,25 +12,35 @@ export class PanelSurfaceTheme {
     private _context = St.ThemeContext.get_for_stage(global.stage);
     private _baseStyle = Main.panel.get_style();
     private _ownedStyle: string | null = null;
+    private _overlay = '';
     private _syncId = 0;
+    private _destroyed = false;
 
     constructor() {
-        this._signals.connect(Main.panel, 'style-changed', () => this._queueSync());
-        this._signals.connect(this._context, 'changed', () => this._queueSync());
-        this._queueSync();
+        try {
+            this._signals.connect(Main.panel, 'style-changed', () => this._queueSync());
+            this._signals.connect(this._context, 'changed', () => this._queueSync());
+            this._queueSync();
+        } catch (error) {
+            this.destroy();
+            throw error;
+        }
     }
 
     destroy(): void {
+        if (this._destroyed) return;
+        this._destroyed = true;
         this._signals.destroy();
         if (this._syncId)
             GLib.source_remove(this._syncId);
         this._syncId = 0;
-        if (Main.panel.get_style() === this._ownedStyle)
-            Main.panel.set_style(this._baseStyle);
+        const current = Main.panel.get_style();
+        const restored = this._withoutOverlay(current);
+        if (current !== restored) Main.panel.set_style(restored);
     }
 
     private _queueSync(): void {
-        if (this._syncId)
+        if (this._destroyed || this._syncId)
             return;
         this._syncId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             this._syncId = 0;
@@ -46,8 +56,7 @@ export class PanelSurfaceTheme {
     private _sync(): void {
         const panel = Main.panel;
         const currentStyle = panel.get_style();
-        if (currentStyle !== this._ownedStyle)
-            this._baseStyle = currentStyle;
+        this._baseStyle = this._withoutOverlay(currentStyle);
         const node = panel.get_theme_node();
         // Evaluate the native style without our previous background override.
         // This avoids compounding alpha on each style/theme notification.
@@ -67,11 +76,20 @@ export class PanelSurfaceTheme {
             green = 0xd3;
             blue = 0xf3;
         }
-        const base = this._baseStyle ? `${this._baseStyle}; ` : '';
-        const style = `${base}background-color: ` +
-            `rgba(${red}, ${green}, ${blue}, ${alpha / 255 * 0.9});`;
+        // Delimit our declaration so an extension appending its own CSS does
+        // not make it part of our base or compound alpha on each refresh.
+        this._overlay = '; /* lyra-panel-surface */ background-color: ' +
+            `rgba(${red}, ${green}, ${blue}, ${alpha / 255 * 0.9}); /* /lyra-panel-surface */`;
+        const style = `${this._baseStyle ?? ''}${this._overlay}`;
         this._ownedStyle = style;
         if (currentStyle !== style)
             panel.set_style(style);
+    }
+
+    private _withoutOverlay(style: string | null): string | null {
+        if (this._ownedStyle !== null && style === this._ownedStyle) return this._baseStyle;
+        if (!style || !this._overlay) return style;
+        const index = style.lastIndexOf(this._overlay);
+        return index < 0 ? style : style.slice(0, index) + style.slice(index + this._overlay.length);
     }
 }

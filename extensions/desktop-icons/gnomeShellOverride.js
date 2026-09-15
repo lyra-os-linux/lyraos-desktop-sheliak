@@ -22,19 +22,19 @@ import Meta from 'gi://Meta'
 
 import * as WorkspaceAnimation from 'resource:///org/gnome/shell/ui/workspaceAnimation.js'
 
-var replaceData = {};
+
 
 /*
      * This class overrides methods in the Gnome Shell. The new methods
      * need to be defined below the class as seperate functions.
-     * The old methods that are overriden can be accesed by relpacedata.old_'name-of-replaced-method'
-     * in the new functions
+     * Original callbacks are captured per instance and passed to each replacement.
     */
 
 
 export class GnomeShellOverride {
     constructor() {
         this._isX11 = !Meta.is_wayland_compositor();
+        this._replacements = [];
     }
 
     enable() {
@@ -51,40 +51,37 @@ export class GnomeShellOverride {
     // restore external methods only if have been intercepted
 
     disable() {
-        for (let value of Object.values(replaceData)) {
-            if (value[0]) {
-                value[1].prototype[value[2]] = value[0];
-            }
+        for (const record of this._replacements.splice(0).reverse()) {
+            record.active = false;
+            if (record.prototype[record.methodName] === record.replacement)
+                record.prototype[record.methodName] = record.original;
         }
-        replaceData = {};
     }
 
-    /**
-     * Replaces a method in a class with our own method, and stores the original
-     * one in 'replaceData' using 'old_XXXX' (being XXXX the name of the original method),
-     * or 'old_classId_XXXX' if 'classId' is defined. This is done this way for the
-     * case that two methods with the same name must be replaced in two different
-     * classes
-     *
-     * @param {class} className The class where to replace the method
-     * @param {string} methodName The method to replace
-     * @param {Function} functionToCall The function to call as the replaced method
-     * @param {string} [classId] an extra ID to identify the stored method when two
-     *                           methods with the same name are replaced in
-     *                           two different classes
-     */
-
-    replaceMethod(className, methodName, functionToCall, classId) {
-        if (className.prototype[methodName] === functionToCall) {
+    // Lyra: optional APIs must exist before interception. Each wrapper keeps
+    // its original callback even if another extension retains it after disable.
+    replaceMethod(className, methodName, functionToCall) {
+        const prototype = className?.prototype;
+        const original = prototype?.[methodName];
+        if (typeof original !== 'function') {
+            console.warn(`Lyra Desktop Icons: ${methodName} unavailable; keeping native window behavior`);
             return;
         }
-        if (classId) {
-            replaceData[`old_${classId}_${methodName}`] = [className.prototype[methodName], className, methodName, classId];
-        } else {
-            replaceData[`old_${methodName}`] = [className.prototype[methodName], className, methodName];
+        if (this._replacements.some(record => record.prototype === prototype && record.methodName === methodName))
+            return;
+        const record = {prototype, methodName, original, active: true};
+        record.replacement = function (...args) {
+            return record.active ? functionToCall.call(this, original, ...args) : original.apply(this, args);
+        };
+        try {
+            prototype[methodName] = record.replacement;
+            this._replacements.push(record);
+        } catch (error) {
+            record.active = false;
+            console.warn(`Lyra Desktop Icons: cannot intercept ${methodName}: ${error}`);
         }
-        className.prototype[methodName] = functionToCall;
     }
+
 };
 
 
@@ -126,9 +123,9 @@ function removeDesktopWindowFromList(windowList) {
 /**
  *
  */
-function newGetWindowActors() {
+function newGetWindowActors(original) {
     /* eslint-disable no-invalid-this */
-    let windowList = replaceData.old_get_window_actors[0].apply(this, []);
+    let windowList = original.apply(this, []);
     return removeDesktopWindowFromList(windowList);
 }
 
@@ -141,10 +138,10 @@ function newGetWindowActors() {
  *
  * @param window
  */
-function newShouldShowWindow(window) {
+function newShouldShowWindow(original, window) {
     if (window.get_window_type() === Meta.WindowType.DESKTOP) {
         return false;
     }
     /* eslint-disable no-invalid-this */
-    return replaceData.old__shouldShowWindow[0].apply(this, [window]);
+    return original.apply(this, [window]);
 }

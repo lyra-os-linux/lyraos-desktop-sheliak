@@ -6,13 +6,28 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {SignalTracker} from './signals.js';
-import {panelRightBox} from './shellCompat.js';
+import {panelBox} from './shellCompat.js';
 import {windowsProfile} from './desktopProfile.js';
+import {OwnedValue} from './ownedState.js';
+import {PanelStyleClass, PanelVisibility} from './panelState.js';
 
 const SHELIAK_PANEL_INDICATOR = 'sheliak-panel-indicator';
 const FLOATING_PANEL_CLASS = 'sheliak-panel-floating';
 const FLUSH_PANEL_CLASS = 'sheliak-panel-flush';
 const MAX_PANEL_MARGIN = 32;
+type HeightRequest = [number, boolean, number, boolean];
+
+// Clutter's height getter can include margins before allocation, whereas
+// set_height() expects a content request. Preserve the requests/flags.
+function heightRequest(actor: Clutter.Actor): HeightRequest {
+    return [actor.min_height, actor.min_height_set, actor.natural_height, actor.natural_height_set];
+}
+function setHeightRequest(actor: Clutter.Actor, [min, minSet, natural, naturalSet]: HeightRequest): void {
+    actor.min_height = min;
+    actor.natural_height = natural;
+    actor.min_height_set = minSet;
+    actor.natural_height_set = naturalSet;
+}
 
 type VisibleActor = Clutter.Actor & {
     visible: boolean;
@@ -29,142 +44,142 @@ type VisibleActor = Clutter.Actor & {
 export class TopBarManager {
     private _settings: Gio.Settings;
     private _signals = new SignalTracker();
-    private _dateMenu: VisibleActor | null;
-    private _dateMenuWasVisible: boolean;
-    private _rightBox: Clutter.Actor;
-    private _nativeIndicators = new Map<VisibleActor, boolean>();
+    private _dateMenu: PanelVisibility | null = null;
+    private _activities: PanelVisibility | null = null;
+    private _rightBox: Clutter.Actor | null;
+    private _nativeIndicators = new Map<VisibleActor, PanelVisibility>();
     private _trackedWindows = new Set<Meta.Window>();
     private _windowSignals = new Map<Meta.Window, number[]>();
     private _flush = false;
-    private _ownedHeight: number | null = null;
+    private _height: OwnedValue<HeightRequest>;
+    private _classes = new Map<string, PanelStyleClass>();
+    private _destroyed = false;
     private _ownedMargins: [number, number, number, number] | null = null;
     private _panelState: {
-        height: number;
         margins: [number, number, number, number];
-        floating: boolean;
-        flush: boolean;
     };
 
     constructor(settings: Gio.Settings) {
         this._settings = settings;
         const statusArea = Main.panel.statusArea as unknown as Record<string, VisibleActor>;
-        this._dateMenu = statusArea.dateMenu ?? null;
-        this._dateMenuWasVisible = this._dateMenu?.visible ?? false;
-        this._rightBox = panelRightBox();
+        this._rightBox = panelBox('right');
         const panel = Main.panel;
+        this._height = new OwnedValue(() => heightRequest(panel), value => setHeightRequest(panel, value),
+            (a, b) => a.every((value, index) => value === b[index]));
         this._panelState = {
-            height: panel.height,
             margins: [panel.margin_top, panel.margin_bottom,
                 panel.margin_left, panel.margin_right],
-            floating: panel.has_style_class_name(FLOATING_PANEL_CLASS),
-            flush: panel.has_style_class_name(FLUSH_PANEL_CLASS),
         };
 
-        for (const actor of this._rightBox.get_children())
-            this._trackNativeIndicator(actor);
-
-        this._signals.connect(this._settings, 'changed::panel-height',
-            () => this._syncHeight());
-        this._signals.connect(this._settings, 'changed::desktop-profile', () => {
-            this._syncHeight();
-            this._syncFloating();
-        });
-        this._signals.connect(this._settings, 'changed::show-clock',
-            () => this._syncClock());
-        this._signals.connect(this._settings, 'changed::show-panel-indicators',
-            () => this._syncIndicators());
-        this._signals.connect(this._settings, 'changed::floating-panel',
-            () => this._syncFloating());
-        this._signals.connect(this._settings, 'changed::panel-margin',
-            () => this._syncFloating());
-        this._signals.connect(this._settings, 'changed::extend-to-edges',
-            () => this._syncFloating());
-        // St reapplies CSS margins before emitting style-changed, including
-        // when the panel is first mapped. Restore our geometry afterwards.
-        this._signals.connect(panel, 'style-changed',
-            () => this._syncMargins());
-        this._signals.connect(this._rightBox, 'child-added',
-            (_box: Clutter.Actor, actor: Clutter.Actor) => {
+        try {
+            for (const name of [FLOATING_PANEL_CLASS, FLUSH_PANEL_CLASS])
+                this._classes.set(name, new PanelStyleClass(panel, name));
+            if (statusArea.dateMenu)
+                this._dateMenu = new PanelVisibility(statusArea.dateMenu);
+            const activities = (statusArea.activities as (VisibleActor & {container?: Clutter.Actor}) | undefined)?.container;
+            if (activities) this._activities = new PanelVisibility(activities);
+            for (const actor of this._rightBox?.get_children() ?? [])
                 this._trackNativeIndicator(actor);
-                this._syncIndicator(actor as VisibleActor);
-            });
-        this._signals.connect(global.display, 'window-created',
-            (_display: unknown, window: Meta.Window) => {
-                this._trackWindow(window);
+
+            this._signals.connect(this._settings, 'changed::panel-height',
+                () => this._syncHeight());
+            this._signals.connect(this._settings, 'changed::desktop-profile', () => {
+                this._syncHeight();
                 this._syncFloating();
             });
-        this._signals.connect(global.workspace_manager, 'active-workspace-changed',
-            () => this._syncFloating());
-        for (const windowActor of global.get_window_actors()) {
-            if (windowActor.meta_window)
-                this._trackWindow(windowActor.meta_window);
-        }
+            this._signals.connect(this._settings, 'changed::show-clock',
+                () => this._syncClock());
+            this._signals.connect(this._settings, 'changed::hide-workspace-button',
+                () => this._syncActivities());
+            this._signals.connect(this._settings, 'changed::show-panel-indicators',
+                () => this._syncIndicators());
+            this._signals.connect(this._settings, 'changed::floating-panel',
+                () => this._syncFloating());
+            this._signals.connect(this._settings, 'changed::panel-margin',
+                () => this._syncFloating());
+            this._signals.connect(this._settings, 'changed::extend-to-edges',
+                () => this._syncFloating());
+            // St reapplies CSS margins before emitting style-changed, including
+            // when the panel is first mapped. Restore our geometry afterwards.
+            this._signals.connect(panel, 'style-changed',
+                () => this._syncMargins());
+            if (this._rightBox) this._signals.connect(this._rightBox, 'child-added',
+                (_box: Clutter.Actor, actor: Clutter.Actor) => {
+                    this._trackNativeIndicator(actor);
+                    this._syncIndicator(actor as VisibleActor);
+                });
+            this._signals.connect(global.display, 'window-created',
+                (_display: unknown, window: Meta.Window) => {
+                    this._trackWindow(window);
+                    this._syncFloating();
+                });
+            this._signals.connect(global.workspace_manager, 'active-workspace-changed',
+                () => this._syncFloating());
+            for (const windowActor of global.get_window_actors()) {
+                if (windowActor.meta_window)
+                    this._trackWindow(windowActor.meta_window);
+            }
 
-        this._syncHeight();
-        this._syncClock();
-        this._syncIndicators();
-        this._syncFloating();
+            this._syncHeight();
+            this._syncClock();
+            this._syncActivities();
+            this._syncIndicators();
+            this._syncFloating();
+        } catch (error) {
+            this.destroy();
+            throw error;
+        }
     }
 
-    destroy(): void {
+    destroy(releaseAppearance: () => void = () => {}): void {
+        if (this._destroyed) return;
+        this._destroyed = true;
         this._signals.destroy();
         const panel = Main.panel;
-        if (this._ownedHeight !== null && panel.height === this._ownedHeight)
-            panel.set_height(this._panelState.height);
+        this._height.restore();
+        const restoredHeight = heightRequest(panel);
+        const currentMargins = [panel.margin_top, panel.margin_bottom,
+            panel.margin_left, panel.margin_right];
         const restoreMargins = this._ownedMargins && this._marginsEqual(panel, this._ownedMargins);
-        this._restoreStyle(panel, FLOATING_PANEL_CLASS, this._panelState.floating);
-        this._restoreStyle(panel, FLUSH_PANEL_CLASS, this._panelState.flush);
-        if (restoreMargins) {
-            [panel.margin_top, panel.margin_bottom, panel.margin_left, panel.margin_right] =
-                this._panelState.margins;
-        }
-        if (this._dateMenuWasVisible)
-            this._dateMenu?.show();
-        for (const [actor, wasVisible] of this._nativeIndicators) {
-            if (wasVisible && actor.get_parent())
-                actor.show();
-        }
+        for (const style of this._classes.values()) style.destroy();
+        this._classes.clear();
+        // Panel layout and theme teardown can reapply CSS after our classes
+        // are removed. Release them with our signals disconnected, then put
+        // back the resolved geometry only once all restyling is complete.
+        releaseAppearance();
+        setHeightRequest(panel, restoredHeight);
+        [panel.margin_top, panel.margin_bottom, panel.margin_left, panel.margin_right] =
+            restoreMargins ? this._panelState.margins : currentMargins;
+        this._dateMenu?.destroy();
+        this._activities?.destroy();
+        for (const visibility of this._nativeIndicators.values()) visibility.destroy();
         this._nativeIndicators.clear();
         this._trackedWindows.clear();
         this._windowSignals.clear();
         this._dateMenu = null;
+        this._activities = null;
     }
 
     private _trackNativeIndicator(actor: Clutter.Actor): void {
-        if (this._isOwnIndicator(actor))
+        if (this._isOwnIndicator(actor) || actor === Main.panel.statusArea.dateMenu)
             return;
         const indicator = actor as VisibleActor;
         if (this._nativeIndicators.has(indicator))
             return;
-        this._nativeIndicators.set(indicator, indicator.visible);
+        const visibility = new PanelVisibility(indicator);
+        this._nativeIndicators.set(indicator, visibility);
         this._signals.connect(indicator, 'destroy', () => {
+            visibility.destroy();
             this._nativeIndicators.delete(indicator);
             this._signals.forget(indicator);
-        });
-        // Alguns indicadores são inseridos ocultos e exibidos somente depois
-        // de obterem estado (rede, bateria, acessibilidade etc.). Se a opção
-        // estiver desligada, interceptamos essa exibição e lembramos que o
-        // Shell queria mostrar o ator para restaurá-lo mais tarde.
-        this._signals.connect(indicator, 'notify::visible', () => {
-            if (this._shouldShowNativeIndicator(indicator)) {
-                this._nativeIndicators.set(indicator, indicator.visible);
-            } else if (indicator.visible) {
-                this._nativeIndicators.set(indicator, true);
-                indicator.hide();
-            }
         });
     }
 
     private _syncHeight(): void {
         const profile = windowsProfile(this._settings);
-        if (profile) {
-            this._ownedHeight = profile === 'windows10' ? 48 : 52;
-            Main.panel.set_height(this._ownedHeight);
-            return;
-        }
-        this._ownedHeight = Math.max(24, Math.min(64,
-            this._settings.get_uint('panel-height')));
-        Main.panel.set_height(this._ownedHeight);
+        const height = profile ? (profile === 'windows10' ? 48 : 52)
+            : Math.max(24, Math.min(64, this._settings.get_uint('panel-height')));
+        this._height.set([height, true, height, true]);
     }
 
     /**
@@ -187,15 +202,11 @@ export class TopBarManager {
             return;
         }
 
-        const panel = Main.panel;
         const flush = this._settings.get_boolean('extend-to-edges') || this._hasMaximizedWindow();
         const margin = flush ? 0 : Math.min(MAX_PANEL_MARGIN, this._settings.get_uint('panel-margin'));
         this._ownedMargins = [margin, margin, margin, margin];
-        panel.add_style_class_name(FLOATING_PANEL_CLASS);
-        if (flush)
-            panel.add_style_class_name(FLUSH_PANEL_CLASS);
-        else
-            panel.remove_style_class_name(FLUSH_PANEL_CLASS);
+        this._classes.get(FLOATING_PANEL_CLASS)!.set(true);
+        this._classes.get(FLUSH_PANEL_CLASS)!.set(flush);
         this._syncMargins();
         if (flush !== this._flush) {
             this._flush = flush;
@@ -204,10 +215,9 @@ export class TopBarManager {
     }
 
     private _resetFloating(): void {
-        const panel = Main.panel;
         this._ownedMargins = [0, 0, 0, 0];
-        panel.remove_style_class_name(FLOATING_PANEL_CLASS);
-        panel.remove_style_class_name(FLUSH_PANEL_CLASS);
+        this._classes.get(FLOATING_PANEL_CLASS)!.set(false);
+        this._classes.get(FLUSH_PANEL_CLASS)!.set(false);
         this._syncMargins();
     }
 
@@ -220,7 +230,7 @@ export class TopBarManager {
     }
 
     private _trackWindow(window: Meta.Window): void {
-        if (this._trackedWindows.has(window))
+        if (this._destroyed || this._trackedWindows.has(window))
             return;
         this._trackedWindows.add(window);
         const ids: number[] = [];
@@ -236,13 +246,6 @@ export class TopBarManager {
             this._syncFloating();
         }));
         this._windowSignals.set(window, ids);
-    }
-
-    private _restoreStyle(actor: St.Widget, styleClass: string, present: boolean): void {
-        if (present)
-            actor.add_style_class_name(styleClass);
-        else
-            actor.remove_style_class_name(styleClass);
     }
 
     private _marginsEqual(actor: Clutter.Actor,
@@ -263,12 +266,11 @@ export class TopBarManager {
     }
 
     private _syncClock(): void {
-        if (this._settings.get_boolean('show-clock')) {
-            if (this._dateMenuWasVisible)
-                this._dateMenu?.show();
-        } else {
-            this._dateMenu?.hide();
-        }
+        this._dateMenu?.suppress(!this._settings.get_boolean('show-clock'));
+    }
+
+    private _syncActivities(): void {
+        this._activities?.suppress(this._settings.get_boolean('hide-workspace-button'));
     }
 
     private _syncIndicators(): void {
@@ -278,16 +280,7 @@ export class TopBarManager {
 
     private _syncIndicator(actor: VisibleActor): void {
         if (this._isOwnIndicator(actor)) return;
-        if (this._shouldShowNativeIndicator(actor)) {
-            if (this._nativeIndicators.get(actor) && actor.get_parent())
-                actor.show();
-        } else {
-            actor.hide();
-        }
-    }
-
-    private _shouldShowNativeIndicator(_actor: VisibleActor): boolean {
-        return this._settings.get_boolean('show-panel-indicators');
+        this._nativeIndicators.get(actor)?.suppress(!this._settings.get_boolean('show-panel-indicators'));
     }
 
     private _isOwnIndicator(actor: Clutter.Actor): boolean {

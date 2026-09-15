@@ -23,20 +23,26 @@ export class DockMagnifier {
     constructor(private _dock: St.Widget,
         private _horizontal: () => boolean,
         private _enabled: () => boolean) {
-        for (const signal of ['motion-event', 'enter-event', 'leave-event']) {
-            this._signals.connect(_dock, signal, () => {
-                this.refresh();
-                return Clutter.EVENT_PROPAGATE;
+        try {
+            for (const signal of ['motion-event', 'enter-event', 'leave-event']) {
+                this._signals.connect(_dock, signal, () => {
+                    this.refresh();
+                    return Clutter.EVENT_PROPAGATE;
+                });
+            }
+            this._signals.connect(_dock, 'notify::mapped', () => this.refresh());
+            this._signals.connect(_dock, 'notify::allocation', () => this.refresh());
+            this._signals.connect(_dock, 'destroy', () => {
+                this._signals.forget(_dock);
+                this._shutdown(false);
             });
+            this._signals.connect(this._animationSettings, 'notify::enable-animations',
+                () => this.refresh());
+        } catch (error) {
+            try { this.destroy(); }
+            catch (cleanup) { console.error(`Lyra: constructor cleanup: ${cleanup}`); }
+            throw error;
         }
-        this._signals.connect(_dock, 'notify::mapped', () => this.refresh());
-        this._signals.connect(_dock, 'notify::allocation', () => this.refresh());
-        this._signals.connect(_dock, 'destroy', () => {
-            this._signals.forget(_dock);
-            this._shutdown(false);
-        });
-        this._signals.connect(this._animationSettings, 'notify::enable-animations',
-            () => this.refresh());
     }
 
     setIcons(icons: MagnifiableIcon[]): void {
