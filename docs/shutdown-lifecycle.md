@@ -69,8 +69,33 @@ a causa do segfault em libmutter-clutter a esta falha apenas pela proximidade
 no journal. O controle llvmpipe demonstra que os acessos inválidos independem
 da GPU NVIDIA específica; não qualifica todos os drivers.
 
-A issue34 permanece aberta: publicar e qualificar o RPM2.0.3, incluir na
-candidata, executar logout/reboot em sessão GNOME completa e hardware aplicável,
+A issue34 permanece aberta: integrar a exigência de versão na candidata e
+executar logout/reboot em sessão GNOME completa e hardware aplicável,
 com o checksum exato da ISO. Nenhum componente da sessão do mantenedor foi
 substituído/desativado; nenhuma ISO foi construída. Reversão: reverter fontes,
 reconstruir pelo staging e manter a candidata bloqueada até repetir os gates.
+
+## Publicação verificada em20/09/2026
+
+Publicado `sheliak-2.0.3-lp161.1.1.noarch.rpm` pelo
+[OBS1379316](https://build.opensuse.org/request/show/1379316), fontes223791a,
+staging rev24/release rev53, srcmd5 `ce77f2c05e1c481a51826300a8b807ce`.
+SHA256 público `0f5b550ee95bedb469efd31779399d08f1d0dcaa89c656ef7191009ddd38e327`.
+Assinatura7edca82e, proveniência e download idêntico à API verificados.
+
+Os131 arquivos das extensões conferem com o bundle testado; a matriz nativa
+foi repetida sobre o RPM extraído e passou os sete cenários/208checks, sem
+acessos a atores destruídos ou encerramento forçado. O conteúdo das extensões
+no RPM de release é idêntico ao staging. Gates completos Lyra/Vega/Fina de
+staging e release passaram; CI35532611463 aprovado nas fontes publicadas.
+
+Preservados o diretório AppArmor e o histórico OBS. O changelog agora é
+reconhecido pelo RPM; permanecem dois apontamentos rpmlint preexistentes
+(arquivos duplicados e interpretador via env do DING), além dos59 avisos
+anteriores. Não foi aplicado filtro para ocultá-los.
+
+[Desktop PR95](https://github.com/lyra-os-linux/lyraos-desktop/pull/95) exige
+Sheliak>=2.0.3 e registraSHELL-01;208 testesPython eCI35532855573 passaram.
+Nenhuma instalação na estação ou ISO foi realizada. A publicação do RPM não
+substitui os gates pendentes descritos acima.
+[Evidência de publicação](shutdown-obs-evidence.json).
