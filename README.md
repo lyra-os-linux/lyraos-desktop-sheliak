@@ -240,3 +240,6 @@ os RPMs antigos antes de sair da sessão. O histórico fica em
 O código original Sheliak usa GPL-3.0-or-later. O fork LDI mantém os avisos
 GPL-3.0-only ou GPL-3.0-or-later de cada arquivo. O RPM declara ambas; consulte
 `LICENSE`, `extensions/desktop-icons/COPYING` e `UPSTREAM.md`.
+
+O ciclo de encerramento da suíte e os limites da qualificação estão em
+[Encerramento do Shell](docs/shutdown-lifecycle.md).

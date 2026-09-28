@@ -1,0 +1,299 @@
+{
+  "schema": 1,
+  "date": "2026-09-20",
+  "issue": "https://github.com/lyra-os-linux/lyraos-desktop-sheliak/issues/34",
+  "baseline_commit": "64212dd",
+  "fixed_version": "2.0.3",
+  "gnome_shell": "48.8-160100.2.1",
+  "mutter": "48.8-160100.2.1",
+  "renderer": "llvmpipe",
+  "termination": "SIGTERM to private GNOME Shell; explicit late disable callback during shutdown",
+  "matrices": {
+    "baseline-matrix": [
+      {
+        "case": "native",
+        "profile": "lyra",
+        "components": [],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 0,
+        "disposed": 0,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "panel",
+        "profile": "lyra",
+        "components": [
+          "panel"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 16,
+        "disposed": 42,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "dock",
+        "profile": "lyra",
+        "components": [
+          "dock"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 16,
+        "disposed": 41,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "pair",
+        "profile": "lyra",
+        "components": [
+          "panel",
+          "dock"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 32,
+        "disposed": 83,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "pair-windows10",
+        "profile": "windows10",
+        "components": [
+          "dock",
+          "panel"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 32,
+        "disposed": 143,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "pair-windows11",
+        "profile": "windows11",
+        "components": [
+          "panel",
+          "dock"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 32,
+        "disposed": 168,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "suite",
+        "profile": "macos",
+        "components": [
+          "panel",
+          "dock",
+          "menus",
+          "search",
+          "animations"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 80,
+        "disposed": 130,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      }
+    ],
+    "fixed-2.0.3": [
+      {
+        "case": "native",
+        "profile": "lyra",
+        "components": [],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 0,
+        "disposed": 0,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "panel",
+        "profile": "lyra",
+        "components": [
+          "panel"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 16,
+        "disposed": 0,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "dock",
+        "profile": "lyra",
+        "components": [
+          "dock"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 16,
+        "disposed": 0,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "pair",
+        "profile": "lyra",
+        "components": [
+          "panel",
+          "dock"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 32,
+        "disposed": 0,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "pair-windows10",
+        "profile": "windows10",
+        "components": [
+          "dock",
+          "panel"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 32,
+        "disposed": 0,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "pair-windows11",
+        "profile": "windows11",
+        "components": [
+          "panel",
+          "dock"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 32,
+        "disposed": 0,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      },
+      {
+        "case": "suite",
+        "profile": "macos",
+        "components": [
+          "panel",
+          "dock",
+          "menus",
+          "search",
+          "animations"
+        ],
+        "runner_exit": 0,
+        "shutdown": {
+          "returncode": 0,
+          "forced": false
+        },
+        "checks": 80,
+        "disposed": 0,
+        "cleanup_errors": [],
+        "gc_signals": [],
+        "late_disable_completed": true
+      }
+    ]
+  },
+  "logs": {
+    "baseline-matrix/dock/shell.log": "7c2c95f4107cf74bf9d77f943218893af76ce7998df7d36066b86f04951e05d6",
+    "baseline-matrix/native/shell.log": "011521f565db4fddc9d45a48a4f61b3f260ebe0ac7f88372e3cd4960904c999b",
+    "baseline-matrix/pair/shell.log": "2c49b488ad92991d21217811a2fcb5090a156d57f773f35cebb96f0f27439449",
+    "baseline-matrix/pair-windows10/shell.log": "5b139a817bbc273259badbd9cc470b3f224f07a2c57241575fe77936c81038cc",
+    "baseline-matrix/pair-windows11/shell.log": "35ffb7e40050c4e9f79b1e2bb5643d72b0ab1a5554b4a7602780eb133632346f",
+    "baseline-matrix/panel/shell.log": "5b3b16d90ae99fbf32150f2898646550585223114a3e681d4fe27131a72b0087",
+    "baseline-matrix/suite/shell.log": "cffe7668a14c1f74344c7db274b7bff91008a020c0c51682a099a953649cd37a",
+    "fixed-2.0.3/dock/shell.log": "9f6dcded68005aad25abc23cb98f627ace6ed612e85e946947a3f4e61bde8304",
+    "fixed-2.0.3/native/shell.log": "df5ba3b547b8aeb316d9c149654380697cfcff06ace9ed35c2a16f1ddf3e11ea",
+    "fixed-2.0.3/pair/shell.log": "3ff4be324a249ebf61a28f008f7f1f24eec2e1fcc0fbaaa90a670ad875ea5d70",
+    "fixed-2.0.3/pair-windows10/shell.log": "fc5d21612db9fcbbba41697c09be626d121105c5c2389f7e9417640b82953f1e",
+    "fixed-2.0.3/pair-windows11/shell.log": "8f5dbdc8079de57b868dd7b1572df42860cdd9988f07ed144082880aef64014d",
+    "fixed-2.0.3/panel/shell.log": "0bcc80293521624cdf71b6fd5181fd7c7c306964d409c187da318b1e71db8bef",
+    "fixed-2.0.3/suite/shell.log": "0d6bdb371630fa7a5ec829e44c81107bf18cb8436e3228131d685407bd52ecec"
+  },
+  "bundle_sha256": {
+    "animations@lyraos.com.br": "24b2634cf2181eab3db32ccea4481ba50bc58bad085e47a65eaac12026ab2da7",
+    "desktop-icons@lyraos.com.br": "75e8f3e47bdd314593469547a5f32bc4123ec28c314cb0841413df1136a0f2c5",
+    "dock@lyraos.com.br": "13c2783923d8877ab2e91f2959f99f638559853ec66fc665e5e3ddfa2b6b0b62",
+    "menus@lyraos.com.br": "bd5d42d23cd7595afa652e16c2fd8c0aee45fd3f27a74e07fec6bdca5b8033ee",
+    "panel@lyraos.com.br": "657a1df731b7391ec23181cc4ccce78f2db3e16a98c29c15cdaab7da1a680be3",
+    "search@lyraos.com.br": "4880c76d07c712751ea8395088b4aa5fca7f983fc47c06fb272646decf3ac5a3"
+  },
+  "coexistence_checks": 69,
+  "node_tests": 133,
+  "provider_tests": 3,
+  "python_tests": 12,
+  "limits": [
+    "No accessible core dump for the 2026-09-18 incident; native segfault causality unproven",
+    "No GNOME Session logout or VM reboot performed; native compositor shutdown and lifecycle cycles only",
+    "Matrix isolates five LyraExtension components; DING not included",
+    "RPM publication and exact ISO qualification pending; host extensions unchanged"
+  ]
+}

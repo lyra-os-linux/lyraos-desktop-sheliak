@@ -1,5 +1,5 @@
 Name:           sheliak
-Version:        2.0.2
+Version:        2.0.3
 Release:        0
 Summary:        Lyra GNOME desktop extension suite
 License:        GPL-3.0-only AND GPL-3.0-or-later
@@ -53,7 +53,7 @@ done
 
 %files
 %license LICENSE extensions/desktop-icons/COPYING
-%doc README.md docs/extension-suite-contracts.md docs/shell-compatibility.md docs/panel-coexistence.md docs/window-lifecycle.md docs/animation-ownership.md docs/partial-activation.md extensions/desktop-icons/UPSTREAM.md
+%doc README.md build-source.txt docs/shutdown-lifecycle.md docs/shutdown-evidence.json docs/extension-suite-contracts.md docs/shell-compatibility.md docs/panel-coexistence.md docs/window-lifecycle.md docs/animation-ownership.md docs/partial-activation.md extensions/desktop-icons/UPSTREAM.md
 %dir %{_datadir}/gnome-shell
 %dir %{_datadir}/gnome-shell/extensions
 %{_datadir}/gnome-shell/extensions/dock@lyraos.com.br
@@ -65,6 +65,7 @@ done
 %dir %{_libexecdir}/lyra
 %{_libexecdir}/lyra/shell-suite
 %config(noreplace) %{_sysconfdir}/xdg/autostart/lyra-shell-suite.desktop
+%dir %{_sysconfdir}/apparmor.d
 %config(noreplace) %{_sysconfdir}/apparmor.d/lyra-desktop-icons
 
 %changelog

@@ -20,6 +20,7 @@ parser.add_argument('--width', type=int, default=1440)
 parser.add_argument('--scale', type=int, choices=[1, 2], default=1)
 parser.add_argument('--language', choices=['en_US', 'pt_BR', 'es_ES'], default='en_US')
 parser.add_argument('--legacy-extensions', type=Path, help='Directory containing the two previous extension UUIDs')
+parser.add_argument('--components', nargs='*', choices=['dock', 'panel', 'menus', 'search', 'animations', 'desktop-icons'], help='Enable only these suite components (empty for native Shell control)')
 parser.add_argument('--inside-private-bus', action='store_true')
 parser.add_argument('--timeout', type=int, default=75, help='Private test deadline in seconds (30–3600)')
 args = parser.parse_args()
@@ -105,6 +106,8 @@ if not args.inside_private_bus:
                 shutil.copytree(args.legacy_extensions.resolve() / name, extensions / name)
             production_ids = legacy
             env['LYRA_NATIVE_LEGACY_MIGRATION'] = '1'
+        if args.components is not None:
+            production_ids = [role + '@lyraos.com.br' for role in args.components]
         subprocess.run(['gsettings', 'set', 'org.gnome.shell', 'enabled-extensions',
                         str(production_ids + [uuid] + (['ding@rastersoft.com'] if args.desktop_icons else []))], env=env, check=True)
         result.write_text(json.dumps({'status': 'pending'}))
@@ -140,8 +143,12 @@ with (output / 'shell.log').open('w') as log:
         else: raise TimeoutError('Pins checks did not finish')
         assert report['status'] == 'passed', report
     finally:
+        forced = False
         shell.terminate()
         try: shell.wait(timeout=8)
         except subprocess.TimeoutExpired:
+            forced = True
             shell.kill()
             shell.wait(timeout=5)
+
+        (output / "shutdown.json").write_text(json.dumps({"returncode": shell.returncode, "forced": forced}))

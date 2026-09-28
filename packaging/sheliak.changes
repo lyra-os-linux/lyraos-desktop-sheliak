@@ -1,0 +1,273 @@
+-------------------------------------------------------------------
+Sun Sep 20 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Update to 2.0.3: release suite resources before shared Shell actors die.
+- Keep normal disable restoration and tolerate repeated/reentrant cleanup.
+- Qualify independent Panel/Dock and profile cycles in native GNOME 48.
+- Preserve published AppArmor directory ownership and record source provenance.
+
+-------------------------------------------------------------------
+Tue Sep 15 17:48:00 UTC 2026 - Lyra OS contributors
+
+- Declare ownership of the AppArmor profile directory so the package passes
+  OBS's clean buildroot file-list check without requiring AppArmor at build.
+
+-------------------------------------------------------------------
+Tue Sep 15 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Refresh 2.0.2 from integrated Git 64212dd7adc4b3b5563b97325d1a05035720d99b.
+- Qualify GNOME 48 compatibility and independent extension activation.
+- Fix panel coexistence, window lifecycle, animation ownership and cleanup.
+- Preserve all six extensions, translations, profiles and desktop icons.
+
+-------------------------------------------------------------------
+Sat Sep 12 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Update to 2.0.1; Git 01c65f4c4b47ef677cd5ecff6916920b4b0b8f68.
+- Wait for Shell readiness before login migration.
+- Keep search after menus across component activation order.
+
+-------------------------------------------------------------------
+Sat Sep 12 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Update to 2.0.0; Git 14eb1d402be95ff457dd4e442ed0e34e1a80d26c.
+- Deliver six Lyra GNOME extensions in one RPM, including Desktop Icons.
+- Journal user migration and profile recovery; preserve files and third-party preferences.
+- Retain DING licenses and complete Portuguese/Spanish catalogs.
+
+-------------------------------------------------------------------
+Fri Sep 11 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Update to 1.16.0; Git 4edafb618134a0f51533f7fed75d2d2f1c8c2621.
+- Advertise MacOS X support and place the logo-only application menu at the left.
+- Add private desktop icons and Vega GTK integration checks.
+
+-------------------------------------------------------------------
+Fri Sep 11 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Update to 1.15.0; merged Git 5d071a805e046224bde33f0a8f5d2cb0ce947dd4.
+- Separate taskbar pins and Start favorites in Windows 10 and Windows 11.
+- Default taskbar pins to Vega, Files and Firefox; preserve current favorites.
+- Support independent pinning, removal and ordering for each profile.
+- Add persistent small, medium, wide and large Windows 10 Start tiles.
+- Adapt Start menu dimensions to display scaling and retain keyboard access.
+- Include Portuguese, English and Spanish menu translations.
+- Validate TypeScript/build/i18n, 33 unit tests and native GNOME interactions.
+
+-------------------------------------------------------------------
+Fri Sep 11 2026 - Rodrigo Brito <rodrigo@lyraos.com.br>
+
+- Update to 1.13.1 from integrated Git a7aca482bc7c2af3984ac5e2de5da88c54d10220.
+- Remove the Personal heading and separator from Places while preserving shortcuts.
+- Clean unused translations; GNOME live check and 26 unit tests passed.
+
+-------------------------------------------------------------------
+Fri Sep 11 2026 - Rodrigo Brito <rodrigo@lyraos.com.br>
+
+- Refresh 1.13.0 from integrated Git 537b726efaefe46013e0868718bd57678e9c9f9f.
+- Recalculate search width when the topbar or monitor layout changes.
+- Observe monitor changes on Main.layoutManager to avoid activation failure.
+- Validated 24 native GNOME scenarios across three languages and two scales.
+
+-------------------------------------------------------------------
+Thu Sep 10 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Refresh 1.13.0 staging sources; Git c2368ea0526af8ec36f33610475666ef6c4f850a.
+- Adapt search and panel menus to available space without overlapping the clock.
+- Preserve search text and keyboard focus between compact and expanded layouts.
+- Forget destroyed indicators and menu pointers during profile switches.
+- Validate four logical widths, three real language catalogs and scales 1 and 2.
+
+-------------------------------------------------------------------
+Thu Sep 10 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Refresh 1.13.0 staging sources; Git 8ee8233f35ca926e853fc979c9e96cbf290f3ddf.
+- Fix single activation with keyboard, mouse and AT-SPI actions.
+- Support keyboard context menus and Ctrl+Alt+Tab dock focus.
+- Keep the dock visible while focused and preserve icons during drag.
+- Include accessible action labels in Portuguese, English and Spanish.
+
+-------------------------------------------------------------------
+Wed Sep  9 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Update to 1.13.0; Git de41b152699a9490f0b14a7778ec2de029e7c050.
+- Add explicit Ubuntu and Windows 10/11 desktop layouts and native Start menus.
+- Retain the native clock, calendar, notifications and system controls.
+- Restore Lyra spacing after repeated profile switches.
+- Match calendar, quick settings and search to approved dark/light Lyra colors.
+- Include Portuguese, English and Spanish catalogs and profile schemas.
+
+-------------------------------------------------------------------
+Tue Sep  8 2026 - Rodrigo Brito <rodrigo@lyraos.com.br>
+
+- Update to 1.12.5; Git ae5e134c5fdd200c4a1ba710f8af3987cf2bfb3f.
+- Match dock and Shell menu surfaces to the top panel palette.
+- Add up to 40% hover magnification with stable icon hitboxes.
+- Apply 10% transparency to panel/dock backgrounds, keeping content opaque.
+- Cancel pending magnifier work on native actor destruction.
+- Wait for valid allocations and reject non-finite scale geometry.
+- Preserve Trash and launcher contrast in light and dark themes.
+- Blend idle icon backgrounds; add accent states and menu outlines.
+- Match the search box surface and icons; retain a visible focus outline.
+- Match Sheliak GTK preferences to the native light/dark panel palette.
+- Reapply colors whenever the Lyra profile enables the extension.
+- Document that package updates need a new GNOME session to load code.
+
+-------------------------------------------------------------------
+Sat Sep  5 2026 - Rodrigo Brito
+
+- Update to 1.12.4; Git df9786ee5d52404b428a30be014386bf46b94b8b.
+- Preserve floating panel margins after stylesheet loading.
+- Five startup/restyling/maximization/cleanup regression cases pass.
+
+-------------------------------------------------------------------
+Sat Sep 05 15:55:22 UTC 2026 - Rodrigo Brito <rodrigo@lyraos.com.br>
+
+- Update to Sheliak 1.12.3 (b1dd242977c6).
+- Use native GNOME Shell styling for the top panel, menus, dock,
+  application buttons, running indicators, search, and tooltips.
+- Inherit user themes and high-contrast styling; choose logo contrast
+  from the actual Shell foreground instead of the GTK color preference.
+- Preserve dock positioning, hiding, sizing, and floating-panel settings.
+
+-------------------------------------------------------------------
+Mon Aug 24 2026 Rodrigo Brito <rodrigo@lyraos.com.br>
+
+- Update to Sheliak 1.12.2.
+- Remove borders and rounded corners from the flush top panel and its popup
+  menus in both dark and light themes.
+
+-------------------------------------------------------------------
+Mon Aug 24 2026 Rodrigo Brito <rodrigo@lyraos.com.br>
+
+- Update repository references from britors to lyra-os-linux (Source
+  Code / Report Issues links, no functional change, source-only
+  rebuild of 1.12.1).
+
+-------------------------------------------------------------------
+Sun Aug 23 23:09:56 UTC 2026 - Rodrigo Brito <rodrigo@lyraos.com.br>
+
+- Update to Sheliak 1.12.1.
+- Rename the extension UUID from sheliak@lyraos.org to sheliak@lyraos.com.br,
+  following the project's move to the lyraos.com.br domain.
+
+-------------------------------------------------------------------
+Fri Aug 21 2026 Rodrigo Brito <rodrigo@lyraos.com.br>
+
+- Rebuild unchanged runtime sources through staging to record an accepted
+  Desktop Alpha 6 promotion and make release provenance auditable.
+
+-------------------------------------------------------------------
+Mon Aug 17 00:41:00 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Remove the Network menu and its NetworkManager integration from the top panel.
+- Remove the related preference, schema key, translations, and documentation.
+
+-------------------------------------------------------------------
+Mon Aug 17 00:01:18 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Move Search back to the configured panel-menu area (left by default).
+- Restore GNOME's native quick-settings menu and remove its dedicated hide option.
+- Remove the power-actions submenu from the System menu.
+- Update preferences, schema descriptions, documentation, and translations.
+
+-------------------------------------------------------------------
+Sun Aug 16 23:48:00 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Fix extension startup on GNOME Shell 48 by decoding Wi-Fi SSIDs with the
+  native TextDecoder API instead of importing an unavailable GJS ByteArray
+  ESM resource.
+
+-------------------------------------------------------------------
+Sun Aug 16 23:36:00 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Update to 1.12.0.
+- Add discovered Wi-Fi networks with connect and disconnect actions.
+- Add configured VPN profiles with connect and disconnect actions.
+- Add Audio, Bluetooth, Energy, and Screenshot entries to the System menu.
+- Add an option to hide GNOME's main right-side quick settings menu by default.
+- Move the Sheliak search field to the right side of the top panel.
+
+-------------------------------------------------------------------
+Sun Aug 16 23:12:22 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Update to 1.11.0.
+- Add an optional Network menu to the top panel with connection status,
+  networking and Wi-Fi controls, and a shortcut to network settings.
+- Integrate network state and controls through the public NetworkManager D-Bus API.
+- Remove Simplified Chinese support; retain English (US), Brazilian Portuguese,
+  and Spanish (Spain).
+
+-------------------------------------------------------------------
+Sun Aug 16 19:03:56 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Place the Power Off submenu immediately after About in the System menu.
+- Document the complete set of top-panel menus and update preference text,
+  schema summaries, package metadata, and translations.
+
+-------------------------------------------------------------------
+Sun Aug 16 15:32:07 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Remove the separator between Report an Issue and Vega in the System menu.
+- Add a Power Off submenu with Suspend, Restart, Power Off, and Log Out
+  actions backed by the native GNOME Shell system actions.
+- Translate the new power actions into Brazilian Portuguese, Spanish, and
+  Simplified Chinese.
+
+-------------------------------------------------------------------
+Sat Aug 15 18:10:00 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Restore dock auto-hiding after adding or removing an application from
+  favorites through its context menu.
+
+-------------------------------------------------------------------
+Sat Aug 15 13:50:00 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Harden extension activation with transactional rollback and safe fallbacks
+  for private GNOME Shell APIs.
+- Fix animation handler validation and rapid minimize/restore transitions.
+- Restore the exact previous top-panel state without overwriting later changes.
+- Cancel stale file searches, resolve file icons asynchronously, and serialize
+  Trash updates to avoid Shell stalls and stale UI state.
+- Release window and preferences signal connections when their owners close.
+- Cancel deferred favorite reordering during disable and fix Auto Hide.
+- Install extension icons with make install and derive the About version from
+  metadata.
+
+-------------------------------------------------------------------
+Thu Aug 13 10:53:32 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Fix missing Source Code and Report an Issue icons by using symbolic icons
+  provided by the standard GNOME icon theme.
+
+-------------------------------------------------------------------
+Thu Aug 13 10:22:19 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Fix extension startup by deferring gettext calls until an active extension
+  instance is available.
+
+-------------------------------------------------------------------
+Wed Aug 12 23:26:29 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Internationalize Sheliak for Lyra OS Desktop Alpha 4 in English (US),
+  Brazilian Portuguese, Spanish (Spain), and Simplified Chinese.
+- Follow the system locale through native gettext with English fallback.
+- Ship compiled translation catalogs and use the system Noto Sans CJK font.
+- Use GitHub and bug icons for the System menu source and issue actions.
+- Make the top-panel search box square when a maximized window is flush.
+
+-------------------------------------------------------------------
+Tue Aug 11 14:32:54 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Update to 1.10.0: add Código-fonte and Reportar erro links to the top of the System panel menu, pointing to the Lyra OS repository and issue tracker.
+
+-------------------------------------------------------------------
+Mon Aug 10 13:33:18 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Update to 1.9.1: fix dock tooltip truncating longer app titles, flatten top panel on maximize, theme top panel popovers with Lyra palette.
+
+-------------------------------------------------------------------
+Sun Aug 09 18:10:00 UTC 2026 - Rodrigo Brito <rodrigo@w3ti.com.br>
+
+- Restage the current Sheliak 1.9.0 release through the reviewed Beta 2 flow.
+- Preserve the maximized-panel and Lyra popover-theme fixes without rollback.

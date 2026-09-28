@@ -1,0 +1,193 @@
+{
+  "state": "published and verified",
+  "source_commit": "223791ab09d2b336e0451f0291569f046577c4b6",
+  "staging_revision": 24,
+  "srcmd5": "ce77f2c05e1c481a51826300a8b807ce",
+  "request": 1379316,
+  "desktop_pr": 95,
+  "native_rpm_matrix": [
+    {
+      "case": "native",
+      "profile": "lyra",
+      "components": [],
+      "runner_exit": 0,
+      "shutdown": {
+        "returncode": 0,
+        "forced": false
+      },
+      "checks": 0,
+      "disposed": 0,
+      "cleanup_errors": [],
+      "gc_signals": [],
+      "late_disable_completed": true
+    },
+    {
+      "case": "panel",
+      "profile": "lyra",
+      "components": [
+        "panel"
+      ],
+      "runner_exit": 0,
+      "shutdown": {
+        "returncode": 0,
+        "forced": false
+      },
+      "checks": 16,
+      "disposed": 0,
+      "cleanup_errors": [],
+      "gc_signals": [],
+      "late_disable_completed": true
+    },
+    {
+      "case": "dock",
+      "profile": "lyra",
+      "components": [
+        "dock"
+      ],
+      "runner_exit": 0,
+      "shutdown": {
+        "returncode": 0,
+        "forced": false
+      },
+      "checks": 16,
+      "disposed": 0,
+      "cleanup_errors": [],
+      "gc_signals": [],
+      "late_disable_completed": true
+    },
+    {
+      "case": "pair",
+      "profile": "lyra",
+      "components": [
+        "panel",
+        "dock"
+      ],
+      "runner_exit": 0,
+      "shutdown": {
+        "returncode": 0,
+        "forced": false
+      },
+      "checks": 32,
+      "disposed": 0,
+      "cleanup_errors": [],
+      "gc_signals": [],
+      "late_disable_completed": true
+    },
+    {
+      "case": "pair-windows10",
+      "profile": "windows10",
+      "components": [
+        "dock",
+        "panel"
+      ],
+      "runner_exit": 0,
+      "shutdown": {
+        "returncode": 0,
+        "forced": false
+      },
+      "checks": 32,
+      "disposed": 0,
+      "cleanup_errors": [],
+      "gc_signals": [],
+      "late_disable_completed": true
+    },
+    {
+      "case": "pair-windows11",
+      "profile": "windows11",
+      "components": [
+        "panel",
+        "dock"
+      ],
+      "runner_exit": 0,
+      "shutdown": {
+        "returncode": 0,
+        "forced": false
+      },
+      "checks": 32,
+      "disposed": 0,
+      "cleanup_errors": [],
+      "gc_signals": [],
+      "late_disable_completed": true
+    },
+    {
+      "case": "suite",
+      "profile": "macos",
+      "components": [
+        "panel",
+        "dock",
+        "menus",
+        "search",
+        "animations"
+      ],
+      "runner_exit": 0,
+      "shutdown": {
+        "returncode": 0,
+        "forced": false
+      },
+      "checks": 80,
+      "disposed": 0,
+      "cleanup_errors": [],
+      "gc_signals": [],
+      "late_disable_completed": true
+    }
+  ],
+  "log_sha256": {
+    "staging-rpm-matrix/native/shell.log": "1f130ac0476f5f47d344e0a8388a758544cc031043b7fe9cf5b59b1da137b4c7",
+    "staging-rpm-matrix/panel/shell.log": "4c49f88e0f3b4eee6e7b6099dfd8c5be2768711b58b0cc0c983345fdfde8329f",
+    "staging-rpm-matrix/dock/shell.log": "190a8ab2f69c0e1656ec5fc970a20b4c6665591294a46fab4b095dbc0ab1ac1d",
+    "staging-rpm-matrix/pair/shell.log": "e2a93e2ae4635ab4750803efea4a93dcea46d47fd3f9a592e8627ebce522eca6",
+    "staging-rpm-matrix/pair-windows10/shell.log": "f1d0e3ad697ed8e320db7d7a2fdca2e5bb74ef90ced6ef654aa2fbb294bb525b",
+    "staging-rpm-matrix/pair-windows11/shell.log": "70252f7f21b051183116f52d0c97d7ab42c6e02383edade06599ca364c9ef09d",
+    "staging-rpm-matrix/suite/shell.log": "ac4e9e2880d1d4dc42f8d80b10f6dd64b175a4123a1ab562b3901590fbcc775a"
+  },
+  "host_installed": false,
+  "iso_qualified": false,
+  "release_revision": 53,
+  "request_state": "accepted",
+  "public": {
+    "passed": true,
+    "url": "https://download.opensuse.org/repositories/home:/rodrigosbrito:/lyra/openSUSE_Leap_16.1/noarch/sheliak-2.0.3-lp161.1.1.noarch.rpm",
+    "sha256": "0f5b550ee95bedb469efd31779399d08f1d0dcaa89c656ef7191009ddd38e327",
+    "file": "sheliak-2.0.3-lp161.1.1.noarch.rpm",
+    "signature": "/home/rodrigo/Git/LyraOS/analysis/2026-09-20/sheliak-shutdown/public-rpms/sheliak-2.0.3-lp161.1.1.noarch.rpm:\n    Header V3 RSA/SHA256 Signature, key ID 7edca82e: OK\n    Header SHA256 digest: OK\n    Header SHA1 digest: OK\n    Payload SHA256 digest: OK\n    V3 RSA/SHA256 Signature, key ID 7edca82e: OK\n    MD5 digest: OK\n",
+    "matches_release": true
+  },
+  "staging": {
+    "passed": true,
+    "project": "home:rodrigosbrito:lyra:staging",
+    "srcmd5": "ce77f2c05e1c481a51826300a8b807ce",
+    "file": "sheliak-2.0.3-lp161.1.1.noarch.rpm",
+    "sha256": "8fcc78b7726bf7918510a6bb155526abf4d135114926b6aa69bb4de3c6673487",
+    "signature": "/home/rodrigo/Git/LyraOS/analysis/2026-09-20/sheliak-shutdown/staging-rpms/sheliak-2.0.3-lp161.1.1.noarch.rpm:\n    Header V3 RSA/SHA256 Signature, key ID 7edca82e: OK\n    Header SHA256 digest: OK\n    Header SHA1 digest: OK\n    Payload SHA256 digest: OK\n    V3 RSA/SHA256 Signature, key ID 7edca82e: OK\n    MD5 digest: OK\n",
+    "identity": [
+      "sheliak",
+      "2.0.3",
+      "lp161.1.1",
+      "obs://build.opensuse.org/home:rodrigosbrito:lyra:staging/openSUSE_Leap_16.1/ce77f2c05e1c481a51826300a8b807ce-sheliak"
+    ],
+    "payload_matches_tested_dist": true,
+    "payload_files": 131,
+    "payload_sha256": "c0229038280f414095f4fb42d6f337a4e0b57baf0de7e009d9c3f4f580e03cd7"
+  },
+  "release": {
+    "passed": true,
+    "project": "home:rodrigosbrito:lyra",
+    "srcmd5": "ce77f2c05e1c481a51826300a8b807ce",
+    "file": "sheliak-2.0.3-lp161.1.1.noarch.rpm",
+    "sha256": "0f5b550ee95bedb469efd31779399d08f1d0dcaa89c656ef7191009ddd38e327",
+    "signature": "/home/rodrigo/Git/LyraOS/analysis/2026-09-20/sheliak-shutdown/release-rpms/sheliak-2.0.3-lp161.1.1.noarch.rpm:\n    Header V3 RSA/SHA256 Signature, key ID 7edca82e: OK\n    Header SHA256 digest: OK\n    Header SHA1 digest: OK\n    Payload SHA256 digest: OK\n    V3 RSA/SHA256 Signature, key ID 7edca82e: OK\n    MD5 digest: OK\n",
+    "identity": [
+      "sheliak",
+      "2.0.3",
+      "lp161.1.1",
+      "obs://build.opensuse.org/home:rodrigosbrito:lyra/openSUSE_Leap_16.1/ce77f2c05e1c481a51826300a8b807ce-sheliak"
+    ],
+    "payload_matches_tested_dist": true,
+    "payload_files": 131,
+    "payload_sha256": "c0229038280f414095f4fb42d6f337a4e0b57baf0de7e009d9c3f4f580e03cd7"
+  },
+  "staging_gate": "passed Lyra20/Vega6/Fina1",
+  "release_gate": "passed Lyra20/Vega6/Fina1",
+  "source_ci": 35532611463,
+  "desktop_ci": 35532855573
+}
