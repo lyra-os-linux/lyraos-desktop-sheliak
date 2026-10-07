@@ -18,6 +18,7 @@ Requires:       typelib(Adw)
 Requires:       typelib(GdkX11) = 3.0
 Requires:       typelib(GnomeDesktop) = 3.0
 Requires:       typelib(GnomeAutoar)
+Requires:       typelib(GLibUnix) = 2.0
 Requires:       typelib(Gtk) = 3.0
 Provides:       gnome-shell-extension-desktop-icons = 49.0.5
 Obsoletes:      gnome-shell-extension-desktop-icons < 50
