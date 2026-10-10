@@ -6,8 +6,8 @@
     "48"
   ],
   "gettext-domain": "sheliak",
-  "version": 3,
-  "version-name": "2.0.3",
+  "version": 4,
+  "version-name": "2.0.4",
   "url": "https://github.com/lyra-os-linux/lyraos-desktop-sheliak",
   "lyra-suite-api": 1
 }
