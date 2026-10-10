@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sat Oct 10 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Update to 2.0.4: stop the Dock from aborting GNOME Shell on app launch.
+- Guard every SignalTracker disconnect with signal_handler_is_connected; a
+  stale handler on a shared emitter (Shell.App, settings) hit an uncatchable
+  GLib assertion that crashed the whole session (lyraos-desktop-sheliak#37).
+- Add tests/test-signal-tracker.mjs covering finalized and repeated disconnects.
+
+-------------------------------------------------------------------
 Sun Sep 20 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
 
 - Update to 2.0.3: release suite resources before shared Shell actors die.
