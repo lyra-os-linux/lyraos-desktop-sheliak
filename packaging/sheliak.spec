@@ -65,6 +65,7 @@ done
 %dir %{_libexecdir}/lyra
 %{_libexecdir}/lyra/shell-suite
 %config(noreplace) %{_sysconfdir}/xdg/autostart/lyra-shell-suite.desktop
+%dir %{_sysconfdir}/apparmor.d
 %config(noreplace) %{_sysconfdir}/apparmor.d/lyra-desktop-icons
 
 %changelog
