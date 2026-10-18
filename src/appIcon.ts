@@ -25,15 +25,23 @@ function toggleStyle(actor: St.Widget, name: string, enabled: boolean): void {
 export class AppIcon {
     readonly actor: St.Button;
     readonly zoomActor: Clutter.Actor;
-    readonly menu: AppContextMenu;
     readonly appId: string;
     readonly app: Shell.App;
     readonly favorite: boolean;
+    readonly iconSize: number;
     private _signals = new SignalTracker();
     private _badge: St.Label;
     private _runningIndicator: St.Widget;
     private _windowCountIndicator: St.Label;
-    private _iconSize: number;
+    // The context menu is a full PopupMenu (BoxPointer, St.DrawingArea border,
+    // PopupMenuManager registration). Most icons are never right-clicked, so it
+    // is created on first use, like GNOME's own AppIcon, instead of once per
+    // icon on every rebuild; each extra menu lifecycle was one more chance to
+    // trip the uncatchable GLib abort seen while destroying its actors.
+    private _menu: AppContextMenu | null = null;
+    private _menuManager: PopupMenu.PopupMenuManager;
+    private _onMenuStateChanged?: (open: boolean) => void;
+    private _windows?: WindowsFavorites;
 
     constructor(
         app: Shell.App,
@@ -49,7 +57,10 @@ export class AppIcon {
             this.app = app;
             this.favorite = favorite;
             this.appId = app.get_id();
-            this._iconSize = iconSize;
+            this.iconSize = iconSize;
+            this._menuManager = menuManager;
+            this._onMenuStateChanged = onMenuStateChanged;
+            this._windows = windows;
             this.actor = new AppButton({
                 style_class: 'overview-tile sheliak-app-button',
                 reactive: true,
@@ -100,13 +111,6 @@ export class AppIcon {
             content.add_child(indicatorRow);
             this.actor.set_child(content);
 
-            this.menu = new AppContextMenu(this.actor, app, windows);
-            menuManager.addMenu(this.menu.menu);
-            if (onMenuStateChanged) {
-                this._signals.connect(this.menu.menu, 'open-state-changed',
-                    (_menu: unknown, open: boolean) => onMenuStateChanged(open));
-            }
-
             // St.Button emits clicked for mouse, keyboard and accessible activation.
             // Let its primary release handler run so cancelled presses and drags
             // cannot activate the application, and each click is handled only once.
@@ -115,7 +119,26 @@ export class AppIcon {
                 (_actor, event: Clutter.Event) => {
                     const button = event.get_button();
                     if (button === Clutter.BUTTON_SECONDARY) {
-                        this.menu.toggle();
+                        this.toggleMenu();
+                        return Clutter.EVENT_STOP;
+                    }
+                    return Clutter.EVENT_PROPAGATE;
+                });
+            // Until the menu exists there is no PopupMenu watching the button for
+            // the Menu key or Shift+F10; open it from here the first time. Once
+            // created, the menu's own source handler takes over (see AppPopupMenu).
+            this._signals.connect(this.actor, 'key-press-event',
+                (_actor, event: Clutter.Event) => {
+                    if (this._menu || !this.actor.reactive)
+                        return Clutter.EVENT_PROPAGATE;
+                    const key = event.get_key_symbol();
+                    const modifiers = event.get_state() & Clutter.ModifierType.MODIFIER_MASK
+                        & ~Clutter.ModifierType.MOD2_MASK;
+                    if ((key === Clutter.KEY_Menu && modifiers === 0) ||
+                        (key === Clutter.KEY_F10 && modifiers === Clutter.ModifierType.SHIFT_MASK)) {
+                        const menu = this.toggleMenu();
+                        if (menu.menu.isOpen)
+                            menu.menu.actor.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
                         return Clutter.EVENT_STOP;
                     }
                     return Clutter.EVENT_PROPAGATE;
@@ -212,15 +235,47 @@ export class AppIcon {
     // Drag a separate icon, so DND cannot reparent or destroy the live button
     // (which would lose focus, ordering and its accessible identity).
     getDragActor(): Clutter.Actor {
-        return this.app.create_icon_texture(this._iconSize);
+        return this.app.create_icon_texture(this.iconSize);
     }
 
     getDragActorSource(): Clutter.Actor {
         return this.zoomActor;
     }
 
+    /** The context menu, or null while it has not been requested yet. */
+    get menu(): AppContextMenu | null {
+        return this._menu;
+    }
+
+    /** Builds the context menu on first use and registers it with the manager. */
+    ensureMenu(): AppContextMenu {
+        if (this._menu)
+            return this._menu;
+        const menu = new AppContextMenu(this.actor, this.app, this._windows);
+        try {
+            this._menuManager.addMenu(menu.menu);
+            if (this._onMenuStateChanged) {
+                const onMenuStateChanged = this._onMenuStateChanged;
+                this._signals.connect(menu.menu, 'open-state-changed',
+                    (_menu: unknown, open: boolean) => onMenuStateChanged(open));
+            }
+        } catch (error) {
+            try { menu.destroy(); }
+            catch (cleanup) { console.error(`Lyra: menu cleanup: ${cleanup}`); }
+            throw error;
+        }
+        this._menu = menu;
+        return menu;
+    }
+
+    toggleMenu(): AppContextMenu {
+        const menu = this.ensureMenu();
+        menu.toggle();
+        return menu;
+    }
+
     activate(): void {
-        this.menu.close();
+        this._menu?.close();
         const windows = this.app.get_windows()
             .filter(window => !window.skip_taskbar);
 
@@ -241,9 +296,10 @@ export class AppIcon {
         // A favorites change rebuilds the dock synchronously from the menu
         // action. Close the menu while its open-state signal is still
         // connected so Dock can release the visibility hold.
-        this.menu?.close();
+        this._menu?.close();
         this._signals.destroy();
-        this.menu?.destroy();
+        this._menu?.destroy();
+        this._menu = null;
         this.actor?.destroy();
     }
 }

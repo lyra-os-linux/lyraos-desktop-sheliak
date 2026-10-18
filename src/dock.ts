@@ -36,6 +36,7 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
     private _appSystem = Shell.AppSystem.get_default();
     private _favorites = AppFavorites.getAppFavorites();
     private _windowsFavorites: WindowsFavorites | undefined;
+    private _iconsProfile: string | null | undefined;
     private _icons: AppIcon[] = [];
     private _menuManager: PopupMenu.PopupMenuManager;
     private _signals = new SignalTracker();
@@ -327,15 +328,20 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
         this._revealTrigger?.destroy();
     }
 
+    // Reconcile the icon row with the favorites and running apps instead of
+    // rebuilding it. Every app-state-changed used to destroy and recreate each
+    // AppIcon together with its PopupMenu; besides flicker, each teardown was a
+    // chance to hit the GLib abort while the Shell destroyed the menu actors.
+    // An icon is kept while its app, favorite flag, size and profile match.
     private _redisplay(): void {
         if (this._destroyed) return;
         this._clearDragPlaceholder();
-        this._magnifier.setIcons([]);
-        for (const icon of this._icons.splice(0))
-            icon.destroy();
 
         const profile = windowsProfile(this._settings);
+        const profileChanged = profile !== this._iconsProfile;
+        this._iconsProfile = profile;
         this._windowsFavorites = profile ? windowsFavorites(this._settings, profile) : undefined;
+        const iconSize = this._settings.get_uint('icon-size');
         const favorites = this._panelFavorites().getFavorites();
         const favoriteIds = new Set(favorites.map(app => app.get_id()));
         const running = this._settings.get_boolean('show-running')
@@ -346,19 +352,52 @@ export class Dock implements DockPanelIntegration, DockLauncherIntegration {
             ? [...running, ...favorites]
             : [...favorites, ...running];
 
+        const previous = new Map<string, AppIcon>();
+        for (const icon of this._icons)
+            previous.set(icon.appId, icon);
+
+        const icons: AppIcon[] = [];
+        const reused = new Set<AppIcon>();
+        let created = 0;
         for (const app of apps) {
-            const icon = new AppIcon(
-                app, this._menuManager, favoriteIds.has(app.get_id()),
+            const id = app.get_id();
+            const favorite = favoriteIds.has(id);
+            const existing = previous.get(id);
+            if (existing && !reused.has(existing) && !profileChanged && existing.app === app &&
+                existing.favorite === favorite && existing.iconSize === iconSize) {
+                reused.add(existing);
+                icons.push(existing);
+                continue;
+            }
+            icons.push(new AppIcon(
+                app, this._menuManager, favorite,
                 open => this._onMenuStateChanged(open),
-                this._settings.get_uint('icon-size'),
+                iconSize,
                 () => this._clearDragPlaceholder(),
-                this._tooltip, this._windowsFavorites);
-            this._icons.push(icon);
-            icon.setBadge(this._launcherEntries.countFor(icon.appId));
-            this._appsBox.add_child(icon.actor);
+                this._tooltip, this._windowsFavorites));
+            created++;
         }
+
+        // Release the magnifier's per-icon signals before any actor dies, then
+        // drop only the icons that no longer belong to the row.
+        this._magnifier.setIcons([]);
+        const stale = this._icons.filter(icon => !reused.has(icon));
+        this._icons = icons;
+        for (const icon of stale)
+            icon.destroy();
+
+        icons.forEach((icon, index) => {
+            if (icon.actor.get_parent() !== this._appsBox)
+                this._appsBox.insert_child_at_index(icon.actor, index);
+            else if (this._appsBox.get_child_at_index(index) !== icon.actor)
+                this._appsBox.set_child_at_index(icon.actor, index);
+            icon.setBadge(this._launcherEntries.countFor(icon.appId));
+            if (reused.has(icon))
+                icon.setState(icon.favorite);
+        });
         this._magnifier.setIcons([...this._icons, this._trash, this._showApps]);
-        console.debug(`Sheliak: redisplay concluído (${favorites.length} favoritos, ${running.length} em execução)`);
+        console.debug(`Sheliak: redisplay concluído (${favorites.length} favoritos, ${running.length} em execução, ` +
+            `${reused.size} mantidos, ${created} criados, ${stale.length} removidos)`);
 
         this._relayout();
     }
