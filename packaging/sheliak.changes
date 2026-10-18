@@ -1,4 +1,20 @@
 -------------------------------------------------------------------
+Sat Oct 18 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Update to 2.0.5: stop the Dock from tearing down its menus on every
+  app-state change, which still aborted GNOME Shell (gsignal.c:4083
+  invalid_closure_notify) inside the Shell's own PopupMenu destroy path after
+  the 2.0.4 SignalTracker guard (two coredumps on 2026-10-18, Leap 16.1).
+- Create each app icon's context menu on first right-click or Menu key
+  instead of once per icon per rebuild; keyboard access (Menu, Shift+F10)
+  is preserved.
+- Reconcile the icon row with favorites and running apps: icons whose app,
+  favorite flag, size and profile are unchanged are kept and reordered
+  instead of destroyed and recreated.
+- Add tests/test-dock-redisplay.mjs and tests/test-app-icon-menu.mjs and
+  docs/dock-menu-lifecycle.md.
+
+-------------------------------------------------------------------
 Sat Oct 10 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
 
 - Update to 2.0.4: stop the Dock from aborting GNOME Shell on app launch.

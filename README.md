@@ -41,6 +41,10 @@ A [verificação de liberação de janelas](docs/window-lifecycle.md) cobre
 referências, sinais e memória em abertura/fechamento repetidos, inclusive ao
 desativar o Dock com aplicativos abertos.
 
+O [ciclo de vida dos menus e ícones da Dock](docs/dock-menu-lifecycle.md)
+explica por que os menus de contexto nascem sob demanda e por que a Dock
+reconcilia os ícones em vez de reconstruí-los a cada mudança de aplicativo.
+
 ```sh
 npm ci
 npm run check
