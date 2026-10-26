@@ -45,6 +45,11 @@ O [ciclo de vida dos menus e ícones da Dock](docs/dock-menu-lifecycle.md)
 explica por que os menus de contexto nascem sob demanda e por que a Dock
 reconcilia os ícones em vez de reconstruí-los a cada mudança de aplicativo.
 
+O menu Aplicativos, o menu Iniciar, a Lyra Busca e os apps fixados nos perfis
+estilo Windows respeitam o controle parental (malcontent) pelo mesmo
+`ParentalControlsManager` da grade de apps do GNOME Shell: apps negados à
+conta não aparecem, e as listas são refeitas quando as restrições mudam.
+
 ```sh
 npm ci
 npm run check

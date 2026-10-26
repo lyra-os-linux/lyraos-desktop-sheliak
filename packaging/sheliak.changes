@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Mon Oct 26 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
+
+- Update to 2.0.6: respect parental controls. The Applications menu, the
+  Start menu, the Lyra search and the Windows-profile pins now filter apps
+  with GNOME Shell's ParentalControlsManager, like the app grid, dash and
+  search already do. Apps denied to the account (browsers, blocked Flatpaks,
+  blocked executables) no longer appear there, and the lists are rebuilt when
+  the parental controls load or change (lyraos-desktop parental controls
+  qualification, R5).
+- Denied pins stay stored and reappear when the restriction is lifted.
+
+-------------------------------------------------------------------
 Sat Oct 18 2026 - Rodrigo Brito <183213+britors@users.noreply.github.com>
 
 - Update to 2.0.5: stop the Dock from tearing down its menus on every

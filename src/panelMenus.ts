@@ -10,6 +10,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {SignalTracker} from './signals.js';
+import {parentalControls, shouldShowApp} from './parentalControls.js';
 import {destroyPanelIndicator, trackOwnedSubmenu, panelBox, panelBoxes, type PanelSide} from './shellCompat.js';
 
 Gio._promisify(Gio.File.prototype, 'query_info_async', 'query_info_finish');
@@ -179,6 +180,7 @@ class ApplicationsIndicator {
             this.button.add_child(box);
 
             this._signals.connect(this._appSystem, 'installed-changed', () => this._rebuild());
+            this._signals.connect(parentalControls(), 'app-filter-changed', () => this._rebuild());
             for (const key of ['show-application-icons', 'sort-applications-menu',
                 'open-application-submenus-sideways']) {
                 this._signals.connect(this._settings, `changed::${key}`,
@@ -230,7 +232,7 @@ class ApplicationsIndicator {
         const seen = new Set<string>();
         for (const appInfo of this._appSystem.get_installed() as unknown as ApplicationInfo[]) {
             const id = appInfo.get_id();
-            if (!id || seen.has(id) || !appInfo.should_show())
+            if (!id || seen.has(id) || !shouldShowApp(appInfo))
                 continue;
             seen.add(id);
 
