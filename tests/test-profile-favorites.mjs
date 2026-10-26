@@ -6,14 +6,19 @@ import {build} from 'esbuild';
 const {outputFiles} = await build({entryPoints: ['src/profileFavorites.ts'], bundle: true,
     write: false, format: 'iife', globalName: 'Pins', plugins: [{name: 'shell', setup(builder) {
         builder.onResolve({filter: /^gi:\/\//}, args => ({path: args.path, namespace: 'shell'}));
+        builder.onResolve({filter: /^resource:\/\//}, args => ({path: args.path, namespace: 'parental'}));
         builder.onLoad({filter: /.*/, namespace: 'shell'}, () => ({contents: 'export default shell;'}));
+        builder.onLoad({filter: /.*/, namespace: 'parental'}, () => ({contents: 'export const getDefault = () => parental;'}));
     }}]});
 
 function fixture() {
     const saved = new Map();
     const installed = new Set(['vega.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop', 'other.desktop']);
-    const shell = {AppSystem: {get_default: () => ({lookup_app: id => installed.has(id) ? {get_id: () => id} : null})}};
-    const {ProfileFavorites} = runInNewContext(`${outputFiles[0].text}\nPins`, {shell});
+    const denied = new Set();
+    const shell = {AppSystem: {get_default: () => ({lookup_app: id => installed.has(id)
+        ? {get_id: () => id, get_app_info: () => ({id})} : null})}};
+    const parental = {shouldShowApp: info => !denied.has(info.id)};
+    const {ProfileFavorites} = runInNewContext(`${outputFiles[0].text}\nPins`, {shell, parental});
     const settings = {
         get_user_value: key => saved.has(key) ? saved.get(key) : null,
         get_strv: key => saved.get(key) ?? (key.includes('-panel-') ? ['vega.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop'] : []),
@@ -22,7 +27,7 @@ function fixture() {
     };
     const list = (profile, surface, seed) => new ProfileFavorites(settings, profile, surface, seed);
     const ids = list => Array.from(list.getIds());
-    return {saved, installed, settings, list, ids};
+    return {saved, installed, denied, settings, list, ids};
 }
 
 test('four independent lists preserve defaults, seed order and edits across recreation', () => {
@@ -68,4 +73,14 @@ test('a rejected write reports failure and does not mutate stored selections', (
     settings.set_strv = () => false;
     assert.throws(() => pins.addFavorite('other.desktop'), /could not be saved/);
     assert.deepEqual(ids(pins), ['firefox.desktop']);
+});
+
+test('apps denied by parental controls stay pinned but are not shown', () => {
+    const {list, ids, denied} = fixture();
+    const pins = list('windows10', 'menu', ['vega.desktop', 'firefox.desktop']);
+    denied.add('firefox.desktop');
+    assert.deepEqual(Array.from(pins.getFavorites(), app => app.get_id()), ['vega.desktop']);
+    assert.deepEqual(ids(pins), ['vega.desktop', 'firefox.desktop']);
+    denied.clear();
+    assert.deepEqual(Array.from(pins.getFavorites(), app => app.get_id()), ['vega.desktop', 'firefox.desktop']);
 });

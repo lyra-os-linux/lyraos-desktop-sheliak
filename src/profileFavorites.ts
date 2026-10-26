@@ -1,6 +1,7 @@
 import type Gio from 'gi://Gio';
 import Shell from 'gi://Shell';
 import type {WindowsProfile} from './desktopProfile.js';
+import {shouldShowPinnedApp} from './parentalControls.js';
 
 export interface FavoritesList {
     getFavorites(): Shell.App[];
@@ -25,8 +26,9 @@ export class ProfileFavorites implements FavoritesList {
 
     getFavorites(): Shell.App[] {
         const apps = Shell.AppSystem.get_default();
+        // Apps denied by parental controls stay pinned but are not shown.
         return this.getIds().map(id => apps.lookup_app(id))
-            .filter((app): app is Shell.App => app !== null);
+            .filter((app): app is Shell.App => app !== null && shouldShowPinnedApp(app));
     }
 
     isFavorite(id: string): boolean { return this.getIds().includes(id); }

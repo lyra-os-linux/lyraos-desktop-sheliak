@@ -11,6 +11,7 @@ import {ensureActorVisibleInScrollView} from 'resource:///org/gnome/shell/misc/a
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {SignalTracker} from './signals.js';
+import {parentalControls, shouldShowApp} from './parentalControls.js';
 import type {WindowsProfile} from './desktopProfile.js';
 import {windowsFavorites, type WindowsFavorites} from './profileFavorites.js';
 import {AppContextMenu} from './contextMenu.js';
@@ -154,6 +155,7 @@ export class StartMenu {
                 return Clutter.EVENT_PROPAGATE;
             });
             this._signals.connect(this._appSystem, 'installed-changed', () => this._reload());
+            this._signals.connect(parentalControls(), 'app-filter-changed', () => this._reload());
             const queueRender = () => {
                 // Finish the popup action before replacing its source actor.
                 if (this._renderId) return;
@@ -214,7 +216,7 @@ export class StartMenu {
     }
 
     private _reload(): void {
-        this._allApps = this._appSystem.get_installed().filter(info => info.should_show())
+        this._allApps = this._appSystem.get_installed().filter(info => shouldShowApp(info))
             .map(info => this._appSystem.lookup_app(info.get_id() ?? ''))
             .filter((app): app is Shell.App => app !== null)
             .sort((a, b) => a.get_name().localeCompare(b.get_name()));

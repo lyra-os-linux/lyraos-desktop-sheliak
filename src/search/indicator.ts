@@ -11,6 +11,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {SignalTracker} from '../signals.js';
+import {parentalControls, shouldShowApp} from '../parentalControls.js';
 import {destroyPanelIndicator} from '../shellCompat.js';
 
 Gio._promisify(Tracker.SparqlConnection.prototype, 'query_async', 'query_finish');
@@ -173,6 +174,7 @@ export class SearchIndicator {
                 (_actor: unknown, event: Clutter.Event) => this._onEntryKeyPress(event));
 
             this._signals.connect(this._appSystem, 'installed-changed', () => this._rebuildIndex());
+            this._signals.connect(parentalControls(), 'app-filter-changed', () => this._rebuildIndex());
             this._rebuildIndex();
         } catch (error) {
             try { this.destroy(); }
@@ -442,7 +444,7 @@ export class SearchIndicator {
 
         for (const appInfo of this._appSystem.get_installed() as unknown as ApplicationInfo[]) {
             const id = appInfo.get_id();
-            if (!id || seen.has(id) || !appInfo.should_show())
+            if (!id || seen.has(id) || !shouldShowApp(appInfo))
                 continue;
             seen.add(id);
             const name = appInfo.get_display_name();
